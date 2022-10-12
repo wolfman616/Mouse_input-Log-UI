@@ -2,26 +2,25 @@
 ; https://autohotkey.com/boards/viewtopic.php?f=6&t=26059
 ; Re-Worked code. Custom-ui, Desktop-mount. Flicker eliminated
 ; To-do : implement Scintilla ;optimize ;add more options
-
 #NoEnv
 ;#Notrayicon
 #Persistent
 #MouseHistory(10)
 #Singleinstance force
-
 (_:=winexist("ahk_class AutoHotkey","KeyHistory_input-log-uiSCI.ahk"))? (
 , A_Y_HC:= 60) : A_Y_HC:= 389
 global A_X_HC:= 8, A_MarginX:= 0, A_MarginY:= 1 			; ordinals ( see-above )
 , text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic" 	; Main font  ; (Monospace working best atm)
 , Dtop:= True, behind_icon:= False, MERGE_MOVE := True 		; D-Top host ;		!Behind D-Top-icons?
 ,A_Y_HC,A_Y_HC,gui_hh,gui_xx,gui_yy,gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
+gosub("menutray")
 
 gui,+LastFound +hWndGui_hW +lastfound +toolwindow +owndialogs -DPIScale -caption,
 WinSet,Transcolor,000000
 gui,+AlwaysOnTop +E0x02080020
 gui,Margin,MarginX:=0,MarginY:=1
 gui,Font,s11 %text_p1_Colour%,% text_p1_Font
-gui, Add, Text, +hwndtxthwnd vMH,% sTrSpacer:=".                                 ." ; <---< Do-Not-Disturb
+gui,Add, Text, +hwndtxthwnd vMH,% sTrSpacer:=".                                 ." ; <---< Do-Not-Disturb
 	guiControlGet,	MH,		Pos		;		-	-get dummy size. -	-	-	(Will have to come out probably)
 	guiControl,,	MH 				;			clear dummy sizing text
 gosub,Resize
@@ -168,6 +167,22 @@ WM_LBUTTONDOWN(wParam, lParam) {
 	global text
 	StringReplace, Clipboard, text, `n, `r`n, All
 }
+
+menutray:
+timer("HideTray",-18000)
+menu,tray,	add, hide me pls, hidetray
+menu,tray,	icon, hide me pls, C:\Icon\32\32.ico
+menu,tray,	add, dont hide pls, donthidetray
+menu,tray,	icon, dont hide pls, C:\Icon\32\32.ico
+return,
+
+hidetray:
+donthidetray:
+switch a_thislabel {
+	case "hidetray"		:	menu,tray,noicon
+	case "donthidetray"	:	timer("hidetray",off)
+}
+return,
 
 guiClose:
 ExitApp,
