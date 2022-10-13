@@ -8,21 +8,27 @@
 #MouseHistory(10)
 #Singleinstance force
 (_:=winexist("ahk_class AutoHotkey","KeyHistory_input-log-uiSCI.ahk"))? (
-, A_Y_HC:= 60) : A_Y_HC:= 389
+, A_Y_HC:= 60) : A_Y_HC:= 389, TxtSize:= 11
 global A_X_HC:= 8, A_MarginX:= 0, A_MarginY:= 1 			; ordinals ( see-above )
 , text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic" 	; Main font  ; (Monospace working best atm)
 , Dtop:= True, behind_icon:= False, MERGE_MOVE := True 		; D-Top host ;		!Behind D-Top-icons?
 ,A_Y_HC,A_Y_HC,gui_hh,gui_xx,gui_yy,gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
 gosub("menutray")
+;lgui,new
+Gui,+LastFound +E0x02000028 +Hwndgui_hw -DPIScale +toolwindow -caption 
+gui,Font,s%TxtSize% %text_p1_Colour%,% text_p1_Font
 
-gui,+LastFound +hWndGui_hW +lastfound +toolwindow +owndialogs -DPIScale -caption,
-WinSet,Transcolor,000000
-gui,+AlwaysOnTop +E0x02080020
-gui,Margin,MarginX:=0,MarginY:=1
-gui,Font,s11 %text_p1_Colour%,% text_p1_Font
-gui,Add, Text, +hwndtxthwnd vMH,% sTrSpacer:=".                                 ." ; <---< Do-Not-Disturb
+gui,Add,Text,+0x06000000 +E0x02000028 w400 vMH,% sTrSpacer:=".                                 ." ; <---< Do-Not-Disturb
 	guiControlGet,	MH,		Pos		;		-	-get dummy size. -	-	-	(Will have to come out probably)
-	guiControl,,	MH 				;			clear dummy sizing text
+	guiControl,,	MH 
+;WinSet,Transcolor,000000
+
+
+;winset,ExStyle,-0x80000,ahk_id %Gui_hW%
+gui,Margin,MarginX:=0,MarginY:=1
+;winset,ExStyle,+0x02000020,ahk_id %txthwnd%
+
+	;l;guiControl,+e0x02000000,	MH, 
 gosub,Resize
 return,
 
@@ -55,7 +61,7 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 	}	}
 	Window2Dtop(hw,1,gui_xx,"",gui_hh)
 	sleep,30
-	gui,Show,x%xx% y%yy% h%gui_hh% NA,% "no_glass b"
+	gui,Show,x%xx% y%yy% w400 h%gui_hh% NA,% "no_glass b"
 	win_move(hw,"","","","","")
 }
 
@@ -102,12 +108,12 @@ MouseHistory(N,ByRef msg,ByRef x,ByRef y,ByRef mouseData,ByRef flags,ByRef Time,
 	buf_max := #MouseHistory()
 	if (N < 1 or N > buf_max)
 		return,false
-	x			:= NumGet(MouseBuffer, ofs:=(N-1)*24, "int")
+	x			:= NumGet(MouseBuffer, ofs:= (N-1) *24,"int")
 	y			:= NumGet(MouseBuffer, ofs+4, "int")
 	mouseData	:= NumGet(MouseBuffer, ofs+8, "uint")
-	flags		:= NumGet(MouseBuffer, ofs+12, "uint")
-	Time		:= NumGet(MouseBuffer, ofs+16, "uint")
-	msg			:= NumGet(MouseBuffer, ofs+20, "uint")
+	flags		:= NumGet(MouseBuffer, ofs+12,"uint")
+	Time		:= NumGet(MouseBuffer, ofs+16,"uint")
+	msg			:= NumGet(MouseBuffer, ofs+20,"uint")
 	elapsed:= Time - ((Time2:= NumGet(MouseBuffer,N*24+16,"uint"))? Time2 : Time)
 	return,!!msg
 }
@@ -116,23 +122,23 @@ MouseHistory(N,ByRef msg,ByRef x,ByRef y,ByRef mouseData,ByRef flags,ByRef Time,
 	global MouseBuffer
 	static MouseHook, MouseHookProc
 	if NewSize =	; Get current history length.
-		return,(cap:=VarSetCapacity(MouseBuffer)//24)>0 ? cap-1 : 0
+		return,(cap:= VarSetCapacity(MouseBuffer) //24)>0 ? cap -1 : 0
 	if NewSize	{
 		if !MouseHook {	; Register mouse hook.
-			MouseHookProc := RegisterCallback("Mouse")
-			MouseHook := DllCall("SetWindowsHookEx", "int", 14, "ptr", MouseHookProc, "uint", 0, "uint", 0, "ptr")
+			MouseHookProc:= RegisterCallback("Mouse")
+			MouseHook:= DllCall("SetWindowsHookEx","int",14,"ptr",MouseHookProc,"uint",0,"uint",0,"ptr")
 		} ; sizeof(MSLLHOOKSTRUCT)=24
-		((cap:= VarSetCapacity(MouseBuffer))>new_cap? cap:= (new_cap:= (NewSize+1)*24))
-		VarSetCapacity(old_buffer, cap) ; Back up previous history.
-		DllCall("RtlMoveMemory", "ptr", &old_buffer, "ptr", &MouseBuffer, "ptr", cap)
-		VarSetCapacity(MouseBuffer, 0) ; FORCE SHRINK
-		VarSetCapacity(MouseBuffer, new_cap, 0) ; Set new history length.
-		DllCall("RtlMoveMemory", "ptr", &MouseBuffer, "ptr", &old_buffer, "ptr", cap) /* ; Restore previous history.; (Remember N+1 mouse events to simplify calculation of the Nth mouse event's elapsed Time.); Put tick count so the initial mouse event has a meaningful value for "elapsed". */
-		NumPut(A_TickCount, MouseBuffer, 16, "uint")
+		((cap:= VarSetCapacity(MouseBuffer))>new_cap? cap:= (new_cap:= (NewSize +1) *24))
+		VarSetCapacity(old_buffer,cap) ; Back up previous history.
+		DllCall("RtlMoveMemory","ptr",&old_buffer,"ptr",&MouseBuffer,"ptr",cap)
+		VarSetCapacity(MouseBuffer,0) ; FORCE SHRINK
+		VarSetCapacity(MouseBuffer,new_cap,0) ; Set new history length.
+		DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",&old_buffer,"ptr",cap) /* ; Restore previous history.; (Remember N+1 mouse events to simplify calculation of the Nth mouse event's elapsed Time.); Put tick count so the initial mouse event has a meaningful value for "elapsed". */
+		NumPut(A_TickCount,MouseBuffer,16,"uint")
 	} else	{ ; Unregister the mouse hook.
 		if MouseHook	{
-			DllCall("UnhookWindowsHookEx", "ptr", MouseHook)
-			DllCall("GlobalFree", "ptr", MouseHookProc)
+			DllCall("UnhookWindowsHookEx","ptr",MouseHook)
+			DllCall("GlobalFree","ptr",MouseHookProc)
 			MouseHook:= ""
 		} ; Clear history entirely.
 		VarSetCapacity(MouseBuffer, 0)
@@ -140,18 +146,18 @@ MouseHistory(N,ByRef msg,ByRef x,ByRef y,ByRef mouseData,ByRef flags,ByRef Time,
 
 Mouse(nCode,wParam,lParam) { ; Mouse hook callback - records mouse events into MouseBuffer.
 	global MouseBuffer,MERGE_MOVE
-	Critical
-	if ((buf_max:= #MouseHistory()) > 0) { ;if MERGE_MOVE && wParam = 0x200 && NumGet(MouseBuffer, 20, "uint") = 0x200
-		if (MERGE_MOVE && NumGet(MouseBuffer,20,"uint") = 0x200) {	; Update the most recent (mouse-move) event.
+	Critical ;if MERGE_MOVE && wParam = 0x200 && NumGet(MouseBuffer, 20, "uint") = 0x200
+	if ((buf_max:= #MouseHistory()) > 0) { 
+		if (MERGE_MOVE && NumGet(MouseBuffer,20,"uint")=0x200) { ; Update the most recent (mouse-move) event.
 			DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",lParam,"ptr",20)
 		} else {	; Push older mouse events to the back.; Copy current mouse event to the buffer.
 			((buf_max>1)? DllCall("RtlMoveMemory","ptr",&MouseBuffer+24,"ptr",&MouseBuffer,"ptr",buf_max*24))
 			DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",lParam,"ptr",20)
 		}
 		NumPut(wParam,MouseBuffer,20,"uint") ; Put wParam in place of dwEventInfo.
-		SetTimer,Show,-10	; "gosub Show" slows down the mouse hook and causes problems, so use a Timer.
-	}
-	return,DllCall("CallNextHookEx", "uint", 0, "int", nCode, "ptr", wParam, "ptr", lParam, "ptr")
+		SetTimer,Show,-10 
+	} ; "gosub Show" slows down the mouse hook and causes problems, so use a Timer.
+	return,DllCall("CallNextHookEx","uint",0,"int",nCode,"ptr",wParam,"ptr",lParam,"ptr")
 }
 
 Window2Dtop(byref Child="",x:=1,y:=45,w:=480,h:=480){		; Window2Dtop(byref Child="",x:=1,y:=45,w:=480,h:=480){	
@@ -165,7 +171,7 @@ Window2Dtop(byref Child="",x:=1,y:=45,w:=480,h:=480){		; Window2Dtop(byref Child
 
 WM_LBUTTONDOWN(wParam, lParam) {
 	global text
-	StringReplace, Clipboard, text, `n, `r`n, All
+	StringReplace,Clipboard,text,`n,`r`n,All
 }
 
 menutray:
