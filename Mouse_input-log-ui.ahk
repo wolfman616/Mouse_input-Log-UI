@@ -5,19 +5,24 @@
 #NoEnv
 ;#Notrayicon
 #Persistent
-#MouseHistory(mhist:=20)
+#MouseHistory(mhist:=12)
 #Singleinstance force
-OnExit("AtExit")
+
+
 (_:=winexist("ahk_class AutoHotkey","KeyHistory_input-log-uiSCI.ahk"))? (
 , A_Y_HC:= 60) : A_Y_HC:= 389, TxtSize:= 11
 global A_X_HC:= 8, A_MarginX:= 0, A_MarginY:= 1			; Ordinals ( see-above )
 , text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic"	; Main font;(Monospace working best atm)
 , Dtop:= True, behind_icon:= False, MERGE_MOVE := True	; D-Top-host;!BehindD-Top-icons?
 ,A_Y_HC,A_Y_HC,gui_hh,gui_xx,gui_yy,gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
-global ismovable, gui_hw, iniwrite_Queued, mhist
-fileexist(A_scriptdir "\" A_ScriptName) ? readini() : ()
-gosub("menutray") ; lgui,new
+global ismovable, gui_hw, iniwrite_Queued, mhist, rect
 A_H_HC:= (mhist *(TxtSize*2))
+VarSetCapacity(RECT,16)
+
+fileexist(A_scriptdir "\" A_ScriptName) ? readini() : ()
+OnExit("AtExit")
+OnMessage(0x0201,"WM_LBUTTONDOWN")
+gosub("menutray") ; lgui,new
 global wtemp:= strlen( SizingTemplate:= " *WHEEL UP   0.000   9999    9999") *10 ; <-<-------do-not-disturb
 Gui,+LastFound  +E0x0a090028  +Hwndgui_hw -DPIScale  -caption 
 gui,Font,s%TxtSize% %text_p1_Colour%,% text_p1_Font
@@ -126,6 +131,9 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 	Window2Dtop(hw,gui_xx,gui_yy,ww,gui_hh)
 	sleep,30
  	gui,Show,x%xx% y%yy% w%ww% h%hh% NA ,% "no_glass"
+	gui,color,0x000000
+	winset,transcolor,off,ahk_id %gui_hw%
+	winset,transcolor,0x000000,ahk_id %gui_hw%	
 	;msgbox,%   xx " " yy  " "  ww " " hh  " "  
 	guicontrol,,MH,e0x02000020
 	guicontrol,,MH,w%wtemp%
@@ -158,6 +166,7 @@ MouseHistory(N,ByRef msg,ByRef x,ByRef y,ByRef mouseData,ByRef flags,ByRef Time,
 
 movabletoggle() {
 global gui_hw,iniwrite_Queued ;	(hwnd=""?hwnd:= gui_hw)
+	winset,transcolor,off,ahk_id %gui_hw%
 	winget, poopold,style,ahk_id %gui_hw%
 	((poopold & 0x80000000)? (!(_:=(wi:=wingetpos(gui_hw)).y = A_Y_HC)?(A_Y_HC:=wi.y, (A_X_HC:= wi.x), msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289)))) ; (if moved)
 	ifmsgbox,ok
@@ -167,7 +176,8 @@ global gui_hw,iniwrite_Queued ;	(hwnd=""?hwnd:= gui_hw)
 	winget,poop,style,ahk_id %gui_hw%
 	sleep,200
 	(poop & 0x80000000? movable:= true : moveable:= False)
- 	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle"
+ 	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%	
+
 	return
 }
 
@@ -206,10 +216,10 @@ WinGetPos(byref WinTitle="") { ; ,WinText="",ExcludeTitle="",ExcludeText="") {
 				,	"H" : wHeight })
 }
 
-WM_LBUTTONDOWN(wParam, lParam) {
-	global text
-	StringReplace,Clipboard,text,`n,`r`n,All
-}
+; WM_LBUTTONDOWN(wParam, lParam) {
+	; global text
+	; StringReplace,Clipboard,text,`n,`r`n,All
+; }
 
 mentoggla() {
 	global
@@ -253,6 +263,25 @@ readini() {
 			} else,varname:= a_loopfield
 	}
 }
+
+WM_LBUTTONDOWN(wParam, lParam,byref RECT, mDC) {
+tt("aadawad")
+ global gui_hw,rbutton_cooldown:=false 
+	;settimer rbutton_cooldown_reset, -670
+	xs := lParam & 0xffff
+	ys := lParam >> 16
+	;DllCall("SetWindowBand", "ptr",gui_hw, "ptr", 0, "uint", 15)
+	;tt(a_lasterror)
+	While   GetKeyState("lbutton","P") {
+		If !GetKeyState("lbutton","P") 
+			return,	
+		else,tt(a_now)
+		DllCall("GetCursorPos","Uint",&RECT)
+		vWinX   :=  NumGet(&RECT,   0, "Int") - xs
+		vWinY   :=  NumGet(&RECT,   4, "Int") - ys
+		win_move(gui_hw,vWinX,vWiny,"","","")
+		sleep, 4
+}	}
 
 IniRightz() {
 	global
