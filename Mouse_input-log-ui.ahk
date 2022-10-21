@@ -22,7 +22,7 @@ If (!LoadSciLexer(SciLexer)) {
 global A_X_HC:= 8, A_MarginX:= 0, A_MarginY:= 1			; Ordinals ( see-above )
 , text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic"	; Main font;(Monospace working best atm)
 , Dtop:= True, behind_icon:= False, MERGE_MOVE := True	; D-Top-host;!BehindD-Top-icons?
-,A_Y_HC,A_Y_HC,gui_hh,gui_xx,gui_yy,gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
+,A_Y_HC, A_Y_HC, gui_hh, gui_xx, gui_yy, gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
 global ismovable, gui_hw, iniwrite_Queued, mhist, rect
 A_H_HC:= (mhist *(TxtSize*2))
 VarSetCapacity(RECT,16)
@@ -344,7 +344,7 @@ if ((buf_max:= #MouseHistory()) > 0) {
 	}
 	NumPut(wParam,MouseBuffer,20,"uint") ; Put wParam in place of dwEventInfo.
 	SetTimer,Show,-10
-} ; "gosub Show" slows down the mouse hook and causes problems, so use a Timer.
+}	; "gosub Show" slows down the mouse hook and causes problems, so use a Timer.
 return,DllCall("CallNextHookEx","uint",0,"int",nCode,"ptr",wParam,"ptr",lParam,"ptr")
 }
 
@@ -382,6 +382,7 @@ mentoggla() {
 }
 
 menutray:
+menu,tray,icon
 menu,tray,noStandard
 menu,tray,add,ismovable,% "movabletoggle"
 menu,tray,add,hide me pls, hidetray

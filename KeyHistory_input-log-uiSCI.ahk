@@ -45,18 +45,41 @@ hHookKeybd:= DllCall("SetWindowsHookEx","int",13 ;WH_KEYBOARD_LL=13
 			,"ptr",RegisterCallback("Keyboard")
 			,"ptr",DllCall("GetModuleHandle","ptr",0,"ptr")
 			,"uint",0,"ptr") ; dwThreadId
+;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
+
 gui, Color,0,0 ; +AlwaysOnTop; WS_EX_COMPOSITED = E0x02000000 & WS_EX_LAYERED= E0x00080000
 Gui,+LastFound +E0x0a090028 +Hwndgui_hw -DPIScale +toolwindow -caption
+winset,transcolor,000000 
 sci_init()
+Gui,Margin,% A_MarginX,% A_MarginY
+Gui,Font,s11,MS gothic 
+Gui,Add,Text, vKH,% Format(formatting,"ea!u","1000.00","Browooes","KEY_IaGNORE_")
+GuiControlGet,KHT,Pos
+GuiControlGet,KH,Pos 
+GuiControlGet,scint,Pos
+GuiControl,,KH		; clear dummy sizing text ;sci.SetText(unused, text,0xEE0000)
+if !headers 
+	GuiControl,,KHT		; clear dummy sizing text 
 gosub,Resize
 return,
+
+;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
+
+GuiClose:
+ExitApp,
+
+dtop_dock:
+(dwnd:= behind_icon? DesktopAC : (DesktoP()))
+return,
+
 sci_init(){
 	global
-	 sci:= new scintilla(gui_hw) ;,headers,KH,KHT,Jew_wind,scint
-	winset,transcolor,000000 
+	Sci:= New scintilla(gui_hw) ;,headers,KH,KHT,Jew_wind,scint
 	Sci.SetCodePage(65001) 	; UTF-8
 	sci.SetWrapMode(true) 	; set default font up;STYLE_DEFAULT := 32
-	sci.StyleSetFont(32,"ms gothic","ms gothic"),sci.stylesetsize(32,11), sci.StyleSetFore(STYLE_DEFAULT,0x995566), sci.STYLESETBACK(STYLE_DEFAULT,0x000000), sci.SETWHITESPACEback(STYLE_DEFAULT,0x000000),sci.StyleSetBold(STYLE_DEFAULT, False) ;sci.DELETEBACK()
+	sci.StyleSetFont(32,"ms gothic","ms gothic"),sci.stylesetsize(32,11)
+	, sci.StyleSetFore(STYLE_DEFAULT,0x995566), sci.STYLESETBACK(STYLE_DEFAULT,0x000000)
+	, sci.SETWHITESPACEback(STYLE_DEFAULT,0x000000),sci.StyleSetBold(STYLE_DEFAULT, False)
 	sci.SETUSETABS(STYLE_DEFAULT, true)
 	sci.SCI_SETTABWIDTH(STYLE_DEFAULT, 3)
 
@@ -100,15 +123,6 @@ sci_init(){
 	Sci.StyleSetBack(SCE_AHKL_USERDEFINED6, 0x000000)
 	sci.SetReadOnly(true)
 	Gui,Add,Custom,ClassScintilla vSCint +e0x02080000 +hwndJew_wind x0 y100 w400 h300 r0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12,
-	Gui,Margin,% A_MarginX,% A_MarginY
-	Gui,Font,s11,MS gothic 
-	Gui,Add,Text, vKH,% Format(formatting,"ea!u","1000.00","Browooes","KEY_IaGNORE_")
-	GuiControlGet,KHT,Pos
-	GuiControlGet,KH,Pos 
-	GuiControlGet,scint,Pos
-	GuiControl,,KH		; clear dummy sizing text ;sci.SetText(unused, text,0xEE0000)
-	if !headers 
-		GuiControl,,KHT		; clear dummy sizing text 
 }
 
 settext(byref txt,byref obj="sci") {
@@ -130,32 +144,31 @@ searchrep(TheNeedle,userstylenum="1",byref obj="sci") {
 	loop,% (pSearch.Length(), cnt:=0) {
 		if ((SearchText:= pSearch[A_Index]) = "")
 			Continue
-		If (!StringLength := StrPut(SearchText, "UTF-8") - 1) {
+		If (!StringLength:= StrPut(SearchText, "UTF-8") - 1) {
 			(%obj%).IndicatorClearRange(0, (%obj%).GetLength())
 			Return
 		}
 		TextLength:= (%obj%).GetLength(), cnt++
 		(%obj%).SetTargetRange(0,TextLength)
-		Length:= StrPut(SearchText, "UTF-8") - 1
+		Length:= StrPut(SearchText,"UTF-8") - 1
 		VarSetCapacity(StrBuf,Length)
-		StrPut(SearchText, &StrBuf, "UTF-8")
+		StrPut(SearchText,&StrBuf,"UTF-8")
 		
-		While ((%obj%).SearchInTarget(StringLength, &StrBuf) != -1) { ; Algumist, RRR
+		While ((%obj%).SearchInTarget(StringLength,&StrBuf) != -1) { ; Algumist, RRR
 			TargetStart:= 	(%obj%).GetTargetStart()
 			TargetEnd:= 	(%obj%).GetTargetEnd()
 			TargetLength:= 	TargetEnd-TargetStart
 			
 			If (!TargetLength) {
-				(%obj%).SetTargetRange(++TargetEnd, TextLength)
+				(%obj%).SetTargetRange(++TargetEnd,TextLength)
 				continue, ; Zero-length match (Scintilla RegEx)
 			}
 			(%obj%).StartStyling(TargetStart) ; colors from start to end
 			anus:=Mod(cnt, 7)
-			switch anus {
-				;case "1","2","3","4","5","6","7","8","9","0":
+			switch anus { ;case "1","2","3","4","5","6","7","8","9","0":
 				default:
-					(%obj%).SetStyling(Length, SCE_AHKL_USERDEFINED%userstylenum%)
-					(%obj%).SetTargetRange(TargetEnd, TextLength)
+					(%obj%).SetStyling(Length,SCE_AHKL_USERDEFINED%userstylenum%)
+					(%obj%).SetTargetRange(TargetEnd,TextLength)
 			}
 		}
 	}
@@ -245,61 +258,60 @@ KeyHistory(N,ByRef vk,ByRef sc,ByRef flags:=0,ByRef time:=0,ByRef elapsed:=0,ByR
  
 GetKeyFlagText(flags) { ;													;"↑":"↓")
 																			;"↗" :"↙")
-	return,( (flags & 0x01) ? "e" : "") ; LLKHF_EXTENDED					;"⇗" :"⇙")
-	. 		((flags & 0x30) ? "" : "") ; LLKHF_ALTDOWN 						;"↿ ":" ⇂")
-	. 		((flags & 0x20) ? "!" : " ") ; LLKHF_ALTDOWN					;"☆":"★")
-	. 		((flags & 0x10) ? "⇝" : " ") ; LLKHF_INJECTED (artificial) 		;"↥" :"↧")
+	return,( (flags & 0x01) ? "e" : "")		; LLKHF_EXTENDED				;"⇗" :"⇙")
+	. 		((flags & 0x30) ? "" : "")		; LLKHF_ALTDOWN 				;"↿ ":" ⇂")
+	. 		((flags & 0x20) ? "!" : " ")	; LLKHF_ALTDOWN					;"☆":"★")
+	. 		((flags & 0x10) ? "⇝" : " ")	; LLKHF_INJECTED (artificial) 	;"↥" :"↧")
 	.		((flags & 0x80) ? ((flags & 0x10) ? "▲" : "△" ) : ((flags & 0x10) ?  "▼" : "▽" ))
-	. 		((flags & 0x10) ? "⇜" : " ") ; LLKHF_INJECTED (artificial)
-	. 		((flags & 0x20) ? "!" : " ") ; LLKHF_ALTDOWN
-	. 		((flags & 0x30) ? "" : "") ; LLKHF_ALTDOWN
+	. 		((flags & 0x10) ? "⇜" : " ")	; LLKHF_INJECTED (artificial)
+	. 		((flags & 0x20) ? "!" : " ")	; LLKHF_ALTDOWN
+	. 		((flags & 0x30) ? "" : "")		; LLKHF_ALTDOWN
 } 
 
 #KeyHistory(NewSize="") {
 	global KeyBuffer
-	static sz := 16+A_PtrSize
+	static sz:= 16+A_PtrSize
 	; Get current history length.
 	if (NewSize="")
 		return,(cap:= VarSetCapacity(KeyBuffer)//sz)>0 ? cap-1 : 0
 	if (NewSize) {
 		new_cap:= (NewSize+1)*sz
 		cap:= VarSetCapacity(KeyBuffer)
-		if (cap>new_cap)
-			cap:=new_cap
-		VarSetCapacity(old_buffer, cap)
+		(cap>new_cap? cap:= new_cap)
+		VarSetCapacity(old_buffer,cap)
 		; Back up previous history.
-		DllCall("RtlMoveMemory", "ptr", &old_buffer, "ptr", &KeyBuffer, "ptr", cap)
+		DllCall("RtlMoveMemory","ptr",&old_buffer,"ptr",&KeyBuffer,"ptr",cap)
 		; Set new history length.
 		VarSetCapacity(KeyBuffer, 0) ; FORCE SHRINK
 		VarSetCapacity(KeyBuffer, new_cap,  0)
 		; Restore previous history.
-		DllCall("RtlMoveMemory", "ptr", &KeyBuffer, "ptr", &old_buffer, "ptr", cap)
+		DllCall("RtlMoveMemory","ptr",&KeyBuffer,"ptr",&old_buffer "ptr",cap)
 		; (Remember N+1 key events to simplify calculation of the Nth key event's elapsed time.)
 		; Put tick count so the initial key event has a meaningful value for "elapsed".
 		NumPut(A_TickCount, KeyBuffer, 12, "uint")
-	} else, VarSetCapacity(KeyBuffer, 0) ; Clear history entirely.
+	} else,VarSetCapacity(KeyBuffer, 0) ; Clear history entirely.
 }
 
-GetKeyNameText(vkCode, scanCode, isExtendedKey) { ; Gets readable key name, usually identical to the name in KeyHistory.
-	k:=GetKeyName(format("vk{1:02x}sc{3}{2:02x}", vkCode, scanCode, isExtendedKey))	; if ( Strlen(k)<4 )			; StringUpper, k, k
+GetKeyNameText(vkCode, scanCode, isExtendedKey) { ;Gets readable key name,usually identical to the name in KeyHistory.
+	k:= GetKeyName(format("vk{1:02x}sc{3}{2:02x}",vkCode,scanCode,isExtendedKey))	; if ( Strlen(k)<4 ) ;StringUpper, k, k
 	switch K {
-		case "up":			return,k:="￪"
-		case "down":			return,k:="￬"
-		case "left":			return,k:="￩"
-		case "right":			return,k:="￫"
-		case "pgdn":			return,k:= "PgDn"
-		case "enter":			return,k:= "⏎"
-		case "backspace":			k:= "↰" ; "⟸" ;""BkSp"
-		case "printscreen":			return,k:= "PrtScr"
-		case "numpadenter":	return,k:= "NumPad⏎" ; ⏎⇦⇚⇐↰←		
-		case "numpadadd":			return,k:= "NumPad+"
-		case "numpadclear":			return,k:= "NumPad￮"
-		case "numpaddivide":			return,k:= "NumPad/"
-		case "numpadsubtract":			return,k:= "NumPad-"
-		case "numpadmultiply":  			return,k:= "NumPad-"
-		case "lcontrol":  			return,k:= "LCtrl"
-		default:		if strlen(k)<4 ;keynames .="↰BkSp↰","PrtScr","NumPad￮","NumPad/","NumPad-","⏎","pgdn","￫","￩","￬","￪",,,,,,
-			StringUpper,k,k
+		case "up" :				return,k:="￪"
+		case "down" :			return,k:="￬"
+		case "left" :			return,k:="￩"
+		case "right" :			return,k:="￫"
+		case "pgdn" :			return,k:= "PgDn"
+		case "enter" :			return,k:= "⏎"
+		case "backspace" :	k:= "↰" ; "⟸" ;""BkSp"
+		case "printscreen" :	return,k:= "PrtScr"
+		case "numpadenter" :	return,k:= "NumPad⏎" ; ⏎⇦⇚⇐↰←		
+		case "numpadadd" :		return,k:= "NumPad+"
+		case "numpadclear" :	return,k:= "NumPad￮"
+		case "numpaddivide" :	return,k:= "NumPad/"
+		case "numpadsubtract" :	return,k:= "NumPad-"
+		case "numpadmultiply" :	return,k:= "NumPad-"
+		case "lcontrol":		return,k:= "LCtrl"
+		default : if strlen(k)<4 ;keynames .="↰BkSp↰","PrtScr","NumPad￮","NumPad/","NumPad-","⏎","pgdn","￫","￩","￬","￪",,,,,,
+						StringUpper,k,k
 	}
 	keynames.=k . ","
 	return,k ;else if ( Strlen(k)>8 )	; return,GetKeyName(format("vk{1:02x}sc{3}{2:02x}", vkCode, scanCode, isExtendedKey))
@@ -308,9 +320,8 @@ GetKeyNameText(vkCode, scanCode, isExtendedKey) { ; Gets readable key name, usua
 Show:
 SetFormat,FloatFast,.2
 SetFormat,IntegerFast,H
-text:= ""
-buf_size:= #KeyHistory()
-Loop,% (buf_size) {
+text:= "", buf_size:= #KeyHistory()
+Loop,% 	 ( buf_size ) {
 	if (KeyHistory(buf_size+1-A_Index, vk, sc, flags, time, elapsed, info)) {
 		keytext:= GetKeyNameText(vk, sc, flags & 0x1)
 		(elapsed<0)? (elapsed:= "#err#"):(dt:= elapsed*0.001)
@@ -325,22 +336,10 @@ Loop,% (buf_size) {
 		StringUpper,sc_a,a
 		flags:= GetKeyFlagText(flags & ~0x1)	;(s!flags? flags:="Down ")
 		; text .= Format("{:-4}{:-5}{:-7}{:-9}{:-10}{:-30}`n", vk_a, sc_a, flags, dt, keytext, info)
-		text .= Format(formatting,flags,dt,keytext,info)
-	}
-}  
-settext(text)
+		text.= Format(formatting,flags,dt,keytext,info)
+}	}
 
-; text3:=text 
-; sci.SetReadOnly(false)
-; sci.SetText(unused,byref text3,0xfffffff)
-; sci.SetReadOnly(true)
-;colour1 := colour1 + 0x111111
-;if (colour1=0xFFFFFF)
-;	colour1 :=0x0000ff
-	;sci.STYLESETFONT(SCLEX_CONTAINER, "STYLE_DEFAULT")
-;sci.STYLESETfore(SCLEX_CONTAINER,colour1)
-;msgbox % text2
-;GuiControl,,scnt,% text
+settext(text)
 return,
 
 return(){
@@ -374,7 +373,7 @@ Window2Dtop(byref Child="",x:=1,y:=45,w:=480,h:=480){
 	return,
 }
 
-EncodeInteger(ref, val) {
+EncodeInteger(ref,val) {
 	return,DllCall("ntdll\RtlFillMemoryUlong", "Uint", ref, "Uint", 4, "Uint", val)
 }
 
@@ -389,10 +388,23 @@ SendUnicodeChar(charCode) {
 	DllCall("SendInput", "UInt", 2, "UInt", &ki, "Int", 28)
 }
 
-; WM_KEYDOWN() {
-	; if A_Gui
-		; return,true
-; }
+movabletoggle() {
+	global gui_hw,iniwrite_Queued ;	
+	winget,p2old,style,ahk_id %gui_hw% 
+	winset,transcolor,off,ahk_id %gui_hw%
+	_:= (wi:= wingetpos(gui_hw)).y ; if (p2old & 0x80000000) ; &&
+	 if (!((_:= (wi:= wingetpos(gui_hw)).y)=A_Y_HC)) {
+		A_Y_HC:= wi.y, A_X_HC:= wi.x
+		msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289) ; (if moved)
+		ifmsgbox,ok
+			IniRightz() ; iniwrite_Queued:=True
+	}
+	sleep,200
+	winget,p2,style,ahk_id %gui_hw%
+	(p2 &0x80000000? movable:= true : moveable:= False)
+	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%	
+	return,
+}
 
 WM_MOUSEMOVE() {
 	if (A_GuiControl="KHT")
@@ -405,12 +417,22 @@ WM_LBUTTONDOWN(wParam, lParam){
 	StringReplace, Clipboard, text, `n, `r`n, All
 }
 
-
-GuiClose:
-ExitApp
-dtop_dock:
-(dwnd:= behind_icon? DesktopAC : (DesktoP()))
-return
+IniRightz() {
+	global
+	settingsString:= "A_X_HC," . A_X_HC . ",A_Y_HC," . A_Y_HC .  ","
+	IniWrite,%settingsString%,%A_scriptdir%\%A_ScriptName%.ini,settings,settingsall
+	return,!errorlevel
+}
+ 
+readini() {
+	local varname 
+	IniRead,settingsall,%A_Scriptfullpath%.ini,settings,settingsall
+	if !settingsall {
+		msgbox,% "no setings"
+		exit
+	} else,loop,parse,settingsall,`,
+		varname? (global (%varname%):= a_loopfield, varname:= "" ) : varname:= a_loopfield
+}
 
 MENSpunction() {
 	global
@@ -438,54 +460,6 @@ AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTO
 	}
 	return,
 } 
-
-movabletoggle() {
-global gui_hw,iniwrite_Queued ;	(hwnd=""?hwnd:= gui_hw)
-	winset,transcolor,off,ahk_id %gui_hw%
-	winget,poopold,style,ahk_id %gui_hw% 
-	msgbox % _:= (wi:= wingetpos(gui_hw)).y
-;	if (poopold & 0x80000000)
-;	msgbox fucking sootcunt
-	 if ( !((_:= (wi:= wingetpos(gui_hw)).y)=A_Y_HC)) {
-		A_Y_HC:= wi.y
-		A_X_HC:= wi.x
-		msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289) ; (if moved)
-		ifmsgbox,ok
-		IniRightz()				;iniwrite_Queued:=True
-	}
-	;winset,style,^0x80000000,ahk_id %gui_hw%
-	;winset,exstyle,^0x20,ahk_id %gui_hw%
-	winget,poop,style,ahk_id %gui_hw%
-	sleep,200
-	(poop & 0x80000000? movable:= true : moveable:= False)
- 	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%	
-
-	return
-}
-
-IniRightz() {
-	global
-	settingsString:= "A_X_HC," . A_X_HC . ",A_Y_HC," . A_Y_HC .  ","
-	IniWrite,%settingsString%,%A_scriptdir%\%A_ScriptName%.ini,settings,settingsall
-	return,!errorlevel
-}
- 
-readini() {
-	local varname 
-	IniRead,settingsall,%A_Scriptfullpath%.ini,settings,settingsall
-	if !settingsall {
-		msgbox,% "no setings"
-		exit
-	} else,loop,parse,settingsall,`,
-		varname? (global (%varname%):= a_loopfield, varname:= "" ) : varname:= a_loopfield
-}
-
-AtExit() {
-	global
-	(iniwrite_Queued? IniRightz())
-	sleep,800
-	return,
-}
 
 menutray() {
 	menu,tray,noStandard
@@ -548,6 +522,13 @@ mentoggla() {
 	return,varn
 }
 
+AtExit() {
+	global Sci,iniwrite_Queued
+	Sci:= destroy scintilla
+	(iniwrite_Queued? IniRightz())
+	sleep,800
+	return,
+}
 ;	_TRAY_WM_	;^^^^^;
 ID_TRAY_EXIT:
 ID_TRAY_PAUSE:
