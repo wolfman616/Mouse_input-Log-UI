@@ -1,4 +1,4 @@
-# Mouse_input-Log-UI
+# AHK_L 1 Mouse_input-Log-UI 
 Real-time visual Mouse-input-log AHK_L
 now with scintilla and saving x,y positions
 
