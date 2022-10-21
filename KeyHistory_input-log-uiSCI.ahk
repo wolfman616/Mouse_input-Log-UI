@@ -1,5 +1,4 @@
-﻿; if !winexist("Mouse_input-log-ui.ahk ahk_class AutoHotkey")
-#NoEnv
+﻿#NoEnv
 #Persistent
 #Notrayicon
 #InstallKeybdHook
@@ -153,7 +152,7 @@ searchrep(TheNeedle,userstylenum="1",byref obj="sci") {
 			TargetStart:= 	(%obj%).GetTargetStart()
 			TargetEnd:= 	(%obj%).GetTargetEnd()
 			TargetLength:= 	TargetEnd-TargetStart
-			
+
 			If (!TargetLength) {
 				(%obj%).SetTargetRange(++TargetEnd,TextLength)
 				continue, ; Zero-length match (Scintilla RegEx)
@@ -333,11 +332,10 @@ Loop,% 	 ( buf_size ) {
 		; text .= Format("{:-4}{:-5}{:-7}{:-9}{:-10}{:-30}`n", vk_a, sc_a, flags, dt, keytext, info)
 		text.= Format(formatting,flags,dt,keytext,info)
 }	}
-
 settext(text)
 return,
 
-return(){
+return() {
 	exit,
 }
 
@@ -351,7 +349,7 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 				dicks:=("gui_" . a_loopfield)
 				(%a_loopfield%):=%dicks%
 	}	}	}
-	
+
 	Window2Dtop(hw,1,"","","")
 	sleep,30
 	gui, Show,x%xx% y%yy% h%hh% w%ww% NA,% "no_glass"
@@ -439,12 +437,9 @@ MENSpunction() {
 AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTONUP
 	;Thread,Priority,0 || ;Thread,Priority,7 ; 0x020B:; WM_XBUTTONDOWN
 	switch lParam {
-		
-		;Case 0x0200 : refresh_uptime_(True)	 ; WM_MOUSEmove
-			; return,% Refresh_uptime_(True)
+	;	Case 0x0200 : refresh_uptime_(True) ; WM_MOUSEmove ; return,% Refresh_uptime_(True)
 		Case 0x204 : return,% MENSpunction() ; WM_RBUTTONDN
 			;MENSpunction()
-			return,
 		Case 0x203 : TT("Loading...") ; timer("ID_VIEW_VARIABLES",-1);	WM_LBUTTONDBLCLK
 			PostMessage,0x0111,%ID_VIEW_VARIABLES%,,,% (A_ScriptName " - AutoHotkey")
 			winget,h,id,WinEvent.ahk - AutoHotkey
@@ -477,7 +472,7 @@ menutray() {
 	menu,tray,Icon,% "Pause",%			"C:\Icon\24\head_fk_a_24_c2b.ico",,32
 	menu,tray,Add,% "Exit",				MenHandlr
 	menu,tray,Icon,% "Exit",%			"C:\Icon\256\DOO0m.ico",,32
-	;timer("HideTray",-36000)
+	timer("HideTray",-36000)	;	Tray autohide	;
 	return,
 }
 
@@ -499,9 +494,8 @@ MenHandlr(isTarget="") {
 	return,
 }
 
-
-return,
-gshow("",A_X_HC,A_Y_HC,400,280)	;gshow("",10,405)
+; return,
+; gshow("",A_X_HC,A_Y_HC,400,280)	;gshow("",10,405)
 
 mentoggla() {
 	global
@@ -534,6 +528,7 @@ AtExit() {
 	sleep,800
 	return,
 }
+
 ;	_TRAY_WM_	;^^^^^;
 ID_TRAY_EXIT:
 ID_TRAY_PAUSE:

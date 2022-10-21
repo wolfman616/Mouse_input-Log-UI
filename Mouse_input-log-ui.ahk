@@ -1,10 +1,13 @@
-﻿;"Desktop wallpaper" Mouse-input feedback ui  ; by M.Wolff
-; https://autohotkey.com/boards/viewtopic.php?f=6&t=26059
-; Re-Worked code. Custom-ui, Desktop-mount. Scintilla lex; Flicker eliminated : 
+﻿;=-------=====-==========----------=====-==========----------=====-==========---;
+;	"Desktop wallpaper" Mouse-input feedback ui  ; by M.Wolff					;
+;	 https://autohotkey.com/boards/viewtopic.php?f=6&t=26059					;
+;	 Re-Worked code. Custom-ui, Desktop-mount. Scintilla ;  Flicker eliminated  :
+;=-------=====-==========----------=====-==========----------=====-==========---;
+
 #NoEnv
 #Notrayicon
 #Persistent
-#MouseHistory(mhist:=13)
+#MouseHistory(mhist:=13)	; todo: reduce this to insert extra info EG: drag-mouse-rect-dims etc
 #Singleinstance force
 OnMessage(0x0404,"AHK_NOTIFYICON")
 #Include <SCIaa>
@@ -72,9 +75,9 @@ return,
 	global MouseBuffer
 	static MouseHook, MouseHookProc
 	if NewSize =	; Get current history length.
-	return,(cap:= VarSetCapacity(MouseBuffer) //24)>0 ? cap -1 : 0
+		return,(cap:= VarSetCapacity(MouseBuffer) //24)>0 ? cap -1 : 0
 	if NewSize	{
-	if !MouseHook {	; Register mouse hook.
+		if !MouseHook {	; Register mouse hook.
 			MouseHookProc:= RegisterCallback("Mouse")
 			MouseHook:= DllCall("SetWindowsHookEx","int",14,"ptr",MouseHookProc,"uint",0,"uint",0,"ptr")
 		} ; sizeof(MSLLHOOKSTRUCT)=24
@@ -86,7 +89,7 @@ return,
 		DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",&old_buffer,"ptr",cap) /* ; Restore previous history.; (Remember N+1 mouse events to simplify calculation of the Nth mouse event's elapsed Time.); Put tick count so the initial mouse event has a meaningful value for "elapsed". */
 		NumPut(A_TickCount,MouseBuffer,16,"uint")
 	} else { ; Unregister the mouse hook.
-		(MouseHook? DllCall("UnhookWindowsHookEx","ptr",MouseHook) ;Clear history entirely.
+		(MouseHook? DllCall("UnhookWindowsHookEx","ptr",MouseHook)
 		,DllCall("GlobalFree","ptr",MouseHookProc), MouseHook:="")
 		VarSetCapacity(MouseBuffer, 0)
 }	}
@@ -299,8 +302,6 @@ AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTO
 		Case 0x203 : TT("Loading...") ; timer("ID_VIEW_VARIABLES",-1);	WM_LBUTTONDBLCLK
 			PostMessage,0x0111,65407,,,% (A_ScriptName " - AutoHotkey")
 		winget,h,id,WinEvent.ahk - AutoHotkey
-		;Aero_BlurWindow(h)
-		;Aero_BlurWindow(h)
 		Case 0x205 : return,(trayActiv?MENSpunction()) ;WM_RBUTTONUP
 		;	Case 0x0208:;	WM_MBUTTONUP	;;timer("ID_TRAY_RELOADSCRIPT",-1); TT("Reloading... 1 sec",900); sleep,900; reload			; return
 	}
@@ -310,18 +311,16 @@ AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTO
 movabletoggle() {
 	global gui_hw,iniwrite_Queued ;	(hwnd=""?hwnd:= gui_hw)
 	winset,transcolor,off,ahk_id %gui_hw%
-	winget,poopold,style,ahk_id %gui_hw%
-	;msgbox % _:= (wi:= wingetpos(gui_hw)).y
-	;if (poopold & 0x80000000)
+	winget,p2old,style,ahk_id %gui_hw% ;msgbox % _:= (wi:= wingetpos(gui_hw)).y ;if (p2old & 0x80000000)
 	if ( !((_:= (wi:= wingetpos(gui_hw)).y)=A_Y_HC)) {
 		A_Y_HC:= wi.y, A_X_HC:= wi.x
 		msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289) ; (if moved)
 		ifmsgbox,ok
-			IniRightz()				;iniwrite_Queued:=True
-	}	;winset,style,^0x80000000,ahk_id %gui_hw%	;winset,exstyle,^0x20,ahk_id %gui_hw%
-	winget,poop,style,ahk_id %gui_hw%
+			IniRightz()	;iniwrite_Queued:=True
+	}
+	winget,p2,style,ahk_id %gui_hw%
 	sleep,200
-	(poop & 0x80000000? movable:= true : moveable:= False)
+	(p2 & 0x80000000? movable:= true : moveable:= False)
 	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%
 	return,
 }
@@ -370,7 +369,7 @@ mentoggla() {
 	}
 	(%varn%:= !%varn%)
 	if varn
-	try,menu,% A_ThisMenu,check,% a_thismenuitem
+		try,menu,% A_ThisMenu,check,% a_thismenuitem
 	else,try menu,% A_ThisMenu,uncheck,% a_thismenuitem
 	return,varn
 }
@@ -436,9 +435,6 @@ MenHandlr(isTarget="") {
 		case "Open" : PostMessage,0x0111,%open%,,
 		case "reload" : reload
 		case "exit" : exitApp,
-		;winset,style,+0x568F0000,ahk_id %ldr_hWnd%
-		;winset,transcolor,off,	 ahk_id %ldr_hWnd%
-		;winset,transcolor,0x000000,ahk_id %ldr_hWnd%
 		default: islabel(a_thismenuitem)? timer(a_thismenuitem,-10) : ()
 	}
 	return,
