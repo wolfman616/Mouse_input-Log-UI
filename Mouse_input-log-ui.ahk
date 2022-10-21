@@ -1,11 +1,10 @@
 ﻿;"Desktop wallpaper" Mouse-input feedback ui  ; by M.Wolff
 ; https://autohotkey.com/boards/viewtopic.php?f=6&t=26059
 ; Re-Worked code. Custom-ui, Desktop-mount. Scintilla lex; Flicker eliminated : 
-
 #NoEnv
 #Notrayicon
 #Persistent
-#MouseHistory(mhist:=10)
+#MouseHistory(mhist:=13)
 #Singleinstance force
 OnMessage(0x0404,"AHK_NOTIFYICON")
 #Include <SCIaa>
@@ -60,9 +59,9 @@ gui,+LastFound 						; Determine visibility.
 WinGet,style,Style
 gui_visible:= style ^0x10000000 	; Determine current position and height.
 WinGetPos,gui_xx,gui_yy,,gui_hh_old
-SysGet,	wa_,	MonitorWorkArea
-SysGet,	twc_h,	51					;SM_CYSMCAPTION
-SysGet,	bdr_h,	8					;SM_CYFIXEDFRAME Initially on the left side.
+SysGet,wa_,	MonitorWorkArea
+SysGet,twc_h,	51					;SM_CYSMCAPTION
+SysGet,bdr_h,	8					;SM_CYFIXEDFRAME Initially on the left side.
 ( !gui_visible)? (gui_xx:= 10, gui_yy:= wa_bottom-(gui_hh +twc_h +bdr_h *2 +10)) :
 ,((gui_yy +gui_hh //2 > (wa_bottom -wa_top) //2)? gui_yy:= 410)
 gshow(gui_hw,A_X_HC,A_Y_HC,gui_ww,gui_hh) ; Move relative to bottom edge when closer to the bottom.
@@ -128,13 +127,10 @@ settext(text)
 return,
 
 gshow(hw="",xx="",yy="",ww="",hh="") {
-	global	;global DTOP,gui_xx,gui_yy,gui_hh,gui_hw,txt_hw,SizingTemplate
+	global
+	winset,exstyle,+0x02000020,ahk_id %txt_hw%
+	winset,style,-0x80080000,ahk_id %hw%
 	wtemp:= strlen(SizingTemplate) *10
-	winset exstyle,+0x02000020,ahk_id %txt_hw%
-	winset style,-0x80080000,ahk_id %hw%
-	;winset exstyle,+0x02000020,ahk_id %txt_hw%
-	;winset style,+0x46000000,ahk_id %hw%
-	;winset style,-0x82080080,ahk_id %hw%
 	loop,parse,% "hw,xx,yy,ww,hh",`,
 	{
 		if ((%a_loopfield%)="") {
@@ -145,15 +141,13 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 		}	
 	}
 	Window2Dtop(hw,gui_xx,gui_yy,ww,gui_hh)
-	sleep,30
-	gui,Show,x%xx% y%yy% w%ww% h%hh% NA ,% "no_glass"
+	sleep,35
+	gui,Show,NA x%xx% y%yy% w%ww% h%hh%,M2EyE
 	gui,color,0x000000
 	winset,transcolor,off,ahk_id %hw%
 	winset,transcolor,0x000000,ahk_id %hw%
-	;msgbox,%   xx " " yy  " "  ww " " hh  " "
 	guicontrol,,MH,e0x02000020
 	guicontrol,,MH,w%wtemp%
-	;win_move(hw,"","",wtemp,"","")
 	winset,style,+0x42000000,ahk_id %hw%
 	winset,style,-0x8a0a0080,ahk_id %hw%
 	winset,ExStyle,+0x02080020,ahk_id %txt_hw%

@@ -20,21 +20,15 @@ If (!LoadSciLexer(SciLexer)) {
 	ExitApp,
 }
 
+varz()
+
 menutray()
 
 global spos:= 1, A_X_HC:= 1,A_Y_HC, A_MarginX:= 0, A_MarginY:= 2 ; master metrics
-, bold:= "0.,1.,2.,3.,4.,5.,6.,7.,8.,9..0,.1,.2,.3,.4,.5,.6,.7,.8,.9", injecteds:= "↰,,"
 
 (_:= winexist("Mouse_input-log-ui.ahk"))? A_Y_HC:= 280 : A_Y_HC:= 60
 
 fileexist(A_scriptdir "\" A_ScriptName ".ini") ?readini() : ()
-
-global colour1:= 0xEE0000, dtop:= true, behind_icon:= False
-, INjectionCHAR:= "", notlogignoreCHAR:= "", notphysCHAR:= ""
-, formatting:="{:1}`t{:1}`t{:1}`n", keynames:= "lctrl,"
-, keytextold, dtop,behind_icon, our_pid:= our_hWnd:= ""
-, ID_TRAY_PAUSE,ID_TRAY_EXIT, ID_VIEW_VARIABLES:= 65407,ID_TRAY_EDITSCRIPT:= 65304
-, ID_TRAY_SUSPEND:= 65305, ID_TRAY_PAUSE:= 65306,ID_TRAY_EXIT:= 65307,ID_TRAY_RELOADSCRIPT:= 65303 
 
 Process,Exist ; OnMessage(0x200, "WM_MOUSEMOVE") ;OnMessage(0x201, "WM_LBUTTONDOWN")
 OnExit("AtExit")
@@ -45,6 +39,7 @@ hHookKeybd:= DllCall("SetWindowsHookEx","int",13 ;WH_KEYBOARD_LL=13
 			,"ptr",RegisterCallback("Keyboard")
 			,"ptr",DllCall("GetModuleHandle","ptr",0,"ptr")
 			,"uint",0,"ptr") ; dwThreadId
+
 ;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
 
 gui, Color,0,0 ; +AlwaysOnTop; WS_EX_COMPOSITED = E0x02000000 & WS_EX_LAYERED= E0x00080000
@@ -74,7 +69,7 @@ return,
 
 sci_init(){
 	global
-	Sci:= New scintilla(gui_hw) ;,headers,KH,KHT,Jew_wind,scint
+	Sci:= New scintilla(gui_hw) ;,headers,KH,KHT,txt_hw,scint
 	Sci.SetCodePage(65001) 	; UTF-8
 	sci.SetWrapMode(true) 	; set default font up;STYLE_DEFAULT := 32
 	sci.StyleSetFont(32,"ms gothic","ms gothic"),sci.stylesetsize(32,11)
@@ -122,7 +117,7 @@ sci_init(){
 	sci.StyleSetFore(SCE_AHKL_USERDEFINED6, 0x0066ff)
 	Sci.StyleSetBack(SCE_AHKL_USERDEFINED6, 0x000000)
 	sci.SetReadOnly(true)
-	Gui,Add,Custom,ClassScintilla vSCint +e0x02080000 +hwndJew_wind x0 y100 w400 h300 r0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12,
+	Gui,Add,Custom,ClassScintilla vSCint +e0x02080000 +hwndtxt_hw x0 y100 w400 h300 r0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12
 }
 
 settext(byref txt,byref obj="sci") {
@@ -459,7 +454,7 @@ AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTO
 	;	Case 0x0208:;	WM_MBUTTONUP	;;timer("ID_TRAY_RELOADSCRIPT",-1); TT("Reloading... 1 sec",900); sleep,900; reload			; return
 	}
 	return,
-} 
+}
 
 menutray() {
 	menu,tray,noStandard
@@ -520,6 +515,16 @@ mentoggla() {
 		 try,menu,% A_ThisMenu,check,% a_thismenuitem
 	else,try menu,% A_ThisMenu,uncheck,% a_thismenuitem
 	return,varn
+}
+
+Varz() {
+	global colour1:= 0xEE0000, dtop:= true, behind_icon:= False
+	, INjectionCHAR:= "", notlogignoreCHAR:= "", notphysCHAR:= ""
+	, formatting:="{:1}`t{:1}`t{:1}`n", keynames:= "lctrl,"
+	, keytextold, dtop,behind_icon, our_pid:= our_hWnd:= ""
+	, ID_TRAY_PAUSE,ID_TRAY_EXIT, ID_VIEW_VARIABLES:= 65407,ID_TRAY_EDITSCRIPT:= 65304
+	, ID_TRAY_SUSPEND:= 65305, ID_TRAY_PAUSE:= 65306,ID_TRAY_EXIT:= 65307,ID_TRAY_RELOADSCRIPT:= 65303
+	, bold:= "0.,1.,2.,3.,4.,5.,6.,7.,8.,9..0,.1,.2,.3,.4,.5,.6,.7,.8,.9", injecteds:= "↰,,"
 }
 
 AtExit() {
