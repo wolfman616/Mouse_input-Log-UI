@@ -5,13 +5,13 @@ Scintilla Lexer implemented fully.
 
 Saving x,y positions to Ini (String)
 
-Originally adapted from the Master Lex
+Originally adapted from Master https://autohotkey.com/boards/viewtopic.php?f=6&t=26059 by Lexicos
 
-Feel free to...
+Feel free to enjoy.
 
 Issues: 
-bad regex function is culprit to slow down over time
+Invisible main "host window" of keyboard ui element dimensions need bringing back in. possibly a rogue scintilla control i see spawning from the custom element.
 
-"host window" of "keyboard ui" dimensions need bringing back
+Optionally temporarily replace some mousefeedback lines with usefull macro fucntions such as measuring cursor drag-rect.
 
 ![Clipboarder 2022 10 21](https://user-images.githubusercontent.com/62726599/197298577-8bcfd5c9-2ae6-44ac-b24c-d44beffdae6d.jpg)
