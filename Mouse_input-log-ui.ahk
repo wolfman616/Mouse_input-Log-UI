@@ -1,7 +1,7 @@
 ﻿;=-------=====-==========----------=====-==========----------=====-==========---;
 ;	"Desktop wallpaper" Mouse-input feedback ui  ; by M.Wolff					;
 ;	 https://autohotkey.com/boards/viewtopic.php?f=6&t=26059					;
-;	 Re-Worked code. Custom-ui, Desktop-mount. Scintilla ;  Flicker eliminated  :
+;	 Re-Worked. Custom-ui, Desktop-mount. Scintilla ;  Flicker eliminated  		:
 ;=-------=====-==========----------=====-==========----------=====-==========---;
 
 #NoEnv
@@ -9,11 +9,12 @@
 #Persistent
 #MouseHistory(mhist:=13)	; todo: reduce this to insert extra info EG: drag-mouse-rect-dims etc
 #Singleinstance force
-OnMessage(0x0404,"AHK_NOTIFYICON")
 #Include <SCIaa>
-
-SciLexer:= A_ScriptDir . (A_PtrSize == 8 ? "\SciLexer64.dll" : "\SciLexer32.dll")
-If (!LoadSciLexer(SciLexer)) {
+OnExit("AtExit")
+OnMessage(0x0404,"AHK_NOTIFYICON")
+OnMessage(0x0201,"WM_LButtonDOWN")
+SciLexer:= A_ScriptDir . (A_PtrSize==8 ? "\SciLexer64.dll" : "\SciLexer32.dll")
+If(!LoadSciLexer(SciLexer)) {
 	MsgBox,0x10,%g_AppName% - Error
 	, % "Failed to load library """ . SciLexer . """.`n`n"
 	ExitApp,
@@ -22,7 +23,7 @@ If (!LoadSciLexer(SciLexer)) {
 (_:=winexist("ahk_class AutoHotkey","KeyHistory_input-log-uiSCI.ahk"))? (
 , A_Y_HC:= 60) : A_Y_HC:= 389, TxtSize:= 11
 global A_X_HC:= 8, A_MarginX:= 0, A_MarginY:= 1			; Ordinals ( see-above )
-, text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic"	; Main font;(Monospace working best atm)
+, text_p1_Colour:="c5540aa", text_p1_Font:= "MS gothic"	; Main font;
 , Dtop:= True, behind_icon:= False, MERGE_MOVE := True	; D-Top-host;!BehindD-Top-icons?
 ,A_Y_HC, A_Y_HC, gui_hh, gui_xx, gui_yy, gui_hh_old,gui_visible 	; MERGE_MOVE -> Merge-Mouse-Move-2next-Update
 global ismovable, gui_hw, iniwrite_Queued, mhist, rect
@@ -33,8 +34,7 @@ fileexist(A_scriptdir "\" A_ScriptName ".ini") ? readini() : ()
 
 ;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
 
-OnExit("AtExit")
-OnMessage(0x0201,"WM_LBUTTONDOWN")
+
 gosub("menutray") ; lgui,new
 global wtemp:= strlen( SizingTemplate:= " *WHEEL UP   0.000   9999    9999") *10 ; <-<-------do-not-disturb
 Gui,+LastFound +E0x0a090028 +Hwndgui_hw -DPIScale +toolwindow -caption
@@ -59,18 +59,18 @@ gui_hh:= A_H_HC, gui_ww:= wtemp+8
 guiControl,Move,MH,h%gui_hh%
 gui_hh +=40
 gui,+LastFound 						; Determine visibility.
-WinGet,style,Style
-gui_visible:= style ^0x10000000 	; Determine current position and height.
+WinGet,Style,Style
+gui_visible:= style &0x10000000 	; Determine current position and height.
 WinGetPos,gui_xx,gui_yy,,gui_hh_old
 SysGet,wa_,	MonitorWorkArea
-SysGet,twc_h,	51					;SM_CYSMCAPTION
-SysGet,bdr_h,	8					;SM_CYFIXEDFRAME Initially on the left side.
+SysGet,twc_h,51					;SM_CYSMCAPTION
+SysGet,bdr_h,8					;SM_CYFIXEDFRAME Initially on the left side.
 ( !gui_visible)? (gui_xx:= 10, gui_yy:= wa_bottom-(gui_hh +twc_h +bdr_h *2 +10)) :
 ,((gui_yy +gui_hh //2 > (wa_bottom -wa_top) //2)? gui_yy:= 410)
 gshow(gui_hw,A_X_HC,A_Y_HC,gui_ww,gui_hh) ; Move relative to bottom edge when closer to the bottom.
 guiControl,+e0x0a000020 +0x06000000,MH
 return,
-
+ 
 #MouseHistory(NewSize="") {
 	global MouseBuffer
 	static MouseHook, MouseHookProc
@@ -96,33 +96,33 @@ return,
 
 Show:
 SetFormat,	FloatFast,.2
-text:= "",	buf_size	:= #MouseHistory()
-Loop,%	(	buf_size  ) {
+text:= "",	buf_size:= #MouseHistory()
+Loop,%	(	buf_size   ) {
 	SetFormat,IntegerFast,D
 	if MouseHistory(A_Index,msg,x,y,mouseData,flags,Time,elapsed) {
 		SetFormat,IntegerFast,H
 		msg:= (msg +0) ""
 		SetFormat,IntegerFast,D
-		switch msg {
-			case 0x201,0x202,0x203,0xA1,0xA2,0xA3 : btn:= "Left" ;		WM_LBUTTONDOWN/UP/DBLCLK, WM_NC..
-			case 0x204,0x205,0x206,0xA4,0xA5,0xA6 : btn:= "Right" ; 	WM_RBUTTONDOWN/UP/DBLCLK, WM_NC..
-			case 0x207,0x208,0x209,0xA7,0xA8,0xA9 : btn:= "Middle" ; 	WM_MBUTTONDOWN/UP/DBLCLK, WM_NC..
-			case 0x20B,0x20C,0x20D,0xAB,0xAC,0xAD : btn:= (mouseData &0x10000)? "X1(Back)" : "X2"(Fwd) ;XBUTTDOWNUP/DBLCLK+NC
-			case 0x20A : mouseData:= mouseData << 32 >> 48, btn:= (mouseData < 0)? "WheelDn" : "WheelUp"	;WM_MOUSEWHEEL
-			case 0x20E : mouseData:= mouseData << 32 >> 48, btn:= (mouseData < 0) ? "WheeLeft" : "WheelRt"	;WM_MOUSEHWHEEL
-			case 0x20A, 0x20E: clickCount:= Abs(mouseData), (!clickCount? clickCount:="")	;WM_MOUSEWHEEL,WM_MOUSEHWHEEL
-			case 0x200: btn:= clickCount:= ""		; 	WM_MOUSEMOVE
-			case 0x203,0xA3,0x206,0xA6,0x209,0xA9,0x20D,0xAD,: btn:= msg, clickCount:= 2		;LBUTTDBLCLK+_NC/M/XBUTTDBLCLK
-			case 0x201,0x204,0x207,0x20B,0xA1,0xA4,0xA7,0xAB : btn:= msg, clickCount:= "Down"	;WM_MOUSEWHEEL WM_MOUSEHWHEEL
-			case 0x202,0x205,0x208,0x20C,0xA2,0xA5,0xA8,0xAC : clickCount:= "Up", btn:= msg		;WM_L/R/M/XBUTTONUP WM_NC
-			default: TT("Error unhandled message from mouse...`n" msg ":`n" mouseData ":`n" flags)
+		switch,msg {
+			case,0x201,0x202,0x203,0xA1,0xA2,0xA3 : btn:= "Left" ;		WM_LButtonDOWN/UP/DBLCLK, WM_NC..
+			case,0x204,0x205,0x206,0xA4,0xA5,0xA6 : btn:= "Right" ; 	WM_RBUTTONDOWN/UP/DBLCLK, WM_NC..
+			case,0x207,0x208,0x209,0xA7,0xA8,0xA9 : btn:= "Middle" ; 	WM_MBUTTONDOWN/UP/DBLCLK, WM_NC..
+			case,0x20B,0x20C,0x20D,0xAB,0xAC,0xAD : btn:= (mouseData &0x10000)? "X1(Back)" : "X2"(Fwd) 		;XBUTTDOWNUP/DBLCLK+NC
+			case,0x20A : mouseData:= mouseData << 32 >> 48, btn:= (mouseData < 0)? "WheelDn" : "WheelUp"	;WM_MOUSEWHEEL
+			case,0x20E : mouseData:= mouseData << 32 >> 48, btn:= (mouseData < 0)? "WheeLeft" : "WheelRt"	;WM_MOUSEHWHEEL
+			case,0x20A,0x20E : clickCount:= Abs(mouseData), (!clickCount? clickCount:="")				;WM_MOUSEWHEEL,WM_MOUSEHWHEEL
+			case,0x200 : btn:= clickCount:= ""		; 	WM_MOUSEMOVE
+			case,0x203,0xA3,0x206,0xA6,0x209,0xA9,0x20D,0xAD,: btn:= msg, clickCount:= 2				;LBUTTDBLCLK+_NC/M/XBUTTDBLCLK
+			case,0x201,0x204,0x207,0x20B,0xA1,0xA4,0xA7,0xAB : btn:= msg, clickCount:= "Down"			;WM_MOUSEWHEEL WM_MOUSEHWHEEL
+			case,0x202,0x205,0x208,0x20C,0xA2,0xA5,0xA8,0xAC : clickCount:= "Up", btn:= msg				;WM_L/R/M/XBUTTONUP WM_NC
+			default : TT("Error unhandled message from mouse...`n" msg ":`n" mouseData ":`n" flags)
 		}
-		text.= ((flags & 1) ? "*" : " ") ; formatting:="{:-8}{:-8}{:-10}{:-9}`n"
+		text.= ((flags &1)? "*" : " ") ; formatting:="{:-8}{:-8}{:-10}{:-9}`n"
 		;.	SubStr" ", 1, 6)(a:=(msg=0x201)?"Dn": (a:=(msg=0x202)?"Up")); (a:=(msg=0x202)?"Up")));" ",1,8)
-		.	SubStr(btn . (a:= (msg=0x201)? "Dn" : (msg=0x202?"Up" : "  " )) .  "     ",1,7)
-		.	SubStr(" "elapsed/1000.0, -4) "  " SubStr("  " x,-4)
-		.	SubStr(" " clickCount, -5)
-		.	SubStr(" "y, -4 ) "`n"
+		.	SubStr(btn . (a:= (msg=0x201)? "Dn" : (msg=0x202? "Up" : "  " )) .  "     ",1,7)
+		.	SubStr(" "elapsed/1000.0,-4) "  " SubStr("  " x,-4)
+		.	SubStr(" " clickCount,-5)
+		.	SubStr(" "y,-4 ) "`n"
 	}
 	else,break,
 }
@@ -133,7 +133,7 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 	global
 	winset,exstyle,+0x02000020,ahk_id %txt_hw%
 	winset,style,-0x80080000,ahk_id %hw%
-	wtemp:= strlen(SizingTemplate) *10
+	msgbox % wtemp:= strlen(SizingTemplate) *10
 	loop,parse,% "hw,xx,yy,ww,hh",`,
 	{
 		if ((%a_loopfield%)="") {
@@ -155,7 +155,7 @@ gshow(hw="",xx="",yy="",ww="",hh="") {
 	winset,style,-0x8a0a0080,ahk_id %hw%
 	winset,ExStyle,+0x02080020,ahk_id %txt_hw%
 	winset,ExStyle,+0x02080020,ahk_id %hw%
-	if ismovable
+	if(ismovable)
 		winset,style,+0x80000000,ahk_id %hw%
 	else {
 		winset,style,-0x80000000,ahk_id %hw%
@@ -168,16 +168,16 @@ MouseHistory(N,ByRef msg,ByRef x,ByRef y,ByRef mouseData,ByRef flags,ByRef Time,
 	global MouseBuffer	; a more straightforward scope method?
 	static mbuf:= MouseBuffer
 	if N is not integer
-	return,false
+		return,false
 	buf_max:= #MouseHistory()
-	if (N < 1 || N > buf_max)
-	return,false
+	if(N<1 || N>buf_max)
+		return,false
 	x			:= NumGet(MouseBuffer,ofs:= (N-1) *24,"int")
-	y			:= NumGet(MouseBuffer,ofs+4, "int" )
-	mouseData	:= NumGet(MouseBuffer,ofs+8, "uint")
-	flags		:= NumGet(MouseBuffer,ofs+12,"uint")
-	Time		:= NumGet(MouseBuffer,ofs+16,"uint")
-	msg			:= NumGet(MouseBuffer,ofs+20,"uint")
+	,y			:= NumGet(MouseBuffer,ofs+4, "int" )
+	,mouseData	:= NumGet(MouseBuffer,ofs+8, "uint")
+	,flags		:= NumGet(MouseBuffer,ofs+12,"uint")
+	,Time		:= NumGet(MouseBuffer,ofs+16,"uint")
+	,msg		:= NumGet(MouseBuffer,ofs+20,"uint")
 	elapsed:=	Time -((Time2:= NumGet(MouseBuffer,N*24+16,"uint"))? Time2 : Time)
 	return,!!msg
 }
@@ -231,96 +231,68 @@ sci_init() {
 	sci.StyleSetFore(SCE_AHKL_USERDEFINED6, 0x0066ff)
 	Sci.StyleSetBack(SCE_AHKL_USERDEFINED6, 0x000000)
 	sci.SetReadOnly(true)
-	Gui,Add,Custom,ClassScintilla vSCint +e0x02080000 +hwndtxthw x0 y100 w400 h300 r0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12,
+	;Gui,Add,Custom,ClassScintilla vSCint +e0x02080000 +hwndtxthw x0 y100 w400 h300 r0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12,
 }
 
 settext(byref txt,byref obj="sci") {
 	global (%obj%)
 	(%obj%).SetReadOnly(false)
-	(%obj%).SetText(unused,txt,0xfffffff)
-	searchrep(keynames,"3")
-	searchrep(bold,"2") 
-	searchrep(injecteds,"2") 
-	searchrep(INjectionCHAR,"1") 
-	searchrep(notlogignoreCHAR,"1") 
-	searchrep(notphysCHAR,"1") 
-	(%obj%).SetReadOnly(true)
+	,(%obj%).SetText(unused,txt,0xfffffff)
+	,searchrep(keynames,"3")
+	,searchrep(bold,"2") 
+	,searchrep(injecteds,"2") 
+	,searchrep(INjectionCHAR,"1") 
+	,searchrep(notlogignoreCHAR,"1") 
+	,searchrep(notphysCHAR,"1") 
+	,(%obj%).SetReadOnly(true)
 }
 
 searchrep(TheNeedle,userstylenum="1",byref obj="sci") {
 	global (%obj%)
-	pSearch:= StrSplit(TheNeedle,",")
-	loop,% (pSearch.Length(), cnt:=0) {
-		if ((SearchText:= pSearch[A_Index]) = "")
-			Continue
-		If (!StringLength := StrPut(SearchText, "UTF-8") - 1) {
+	loop,% ((pSearch:= StrSplit(TheNeedle,",")).Length(), cnt:=0) {
+		if((SearchText:= pSearch[A_Index]) = "")
+			Continue,
+		If(!StringLength := StrPut(SearchText,"UTF-8") - 1) {
 			(%obj%).IndicatorClearRange(0, (%obj%).GetLength())
-			Return
+			,Return
 		}
 		TextLength:= (%obj%).GetLength(), cnt++
-		(%obj%).SetTargetRange(0,TextLength)
-		Length:= StrPut(SearchText, "UTF-8") - 1
-		VarSetCapacity(StrBuf,Length)
-		StrPut(SearchText, &StrBuf, "UTF-8")
+		,(%obj%).SetTargetRange(0,TextLength)
+		,Length:= StrPut(SearchText, "UTF-8") - 1
+		,VarSetCapacity(StrBuf,Length)
+		,StrPut(SearchText, &StrBuf, "UTF-8")
 		
-		While ((%obj%).SearchInTarget(StringLength, &StrBuf) != -1) { ; Algumist, RRR
-			TargetStart:= 	(%obj%).GetTargetStart()
-			TargetEnd:= 	(%obj%).GetTargetEnd()
-			TargetLength:= 	TargetEnd-TargetStart
-			
-			If (!TargetLength) {
-				(%obj%).SetTargetRange(++TargetEnd, TextLength)
-				continue, ; Zero-length match (Scintilla RegEx)
+		While((%obj%).SearchInTarget(StringLength,&StrBuf) != -1) { ; Algumist, RRR
+			TargetStart:=	(%obj%).GetTargetStart()
+			,TargetEnd:=	(%obj%).GetTargetEnd()
+			,TargetLength:=	TargetEnd-TargetStart
+
+			If(!TargetLength) {
+				(%obj%).SetTargetRange(++TargetEnd,TextLength)
+				,continue, ; Zero-length match (Scintilla RegEx)
 			}
 			(%obj%).StartStyling(TargetStart) ; colors from start to end
-			anus:=Mod(cnt, 7)
-			switch anus {
-				;case "1","2","3","4","5","6","7","8","9","0":
+
+			switch,_:=Mod(cnt,7) {
+				;case,"1","2","3","4","5","6","7","8","9","0":
 				default:
-					(%obj%).SetStyling(Length, SCE_AHKL_USERDEFINED%userstylenum%)
-					(%obj%).SetTargetRange(TargetEnd, TextLength)
-			}
-		}
-	}
-}
-
-MENSpunction() {
-	global
-	trayActiv:= True
-	Menu,Tray,Show
-	trayActiv:= False
-}
-
-AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN   ; 0x202:; WM_LBUTTONUP
-	;Thread,Priority,0 || ;Thread,Priority,7 ; 0x020B:; WM_XBUTTONDOWN
-	switch lParam {
-		;Case 0x0200 : refresh_uptime_(True)	 ; WM_MOUSEmove
-		; return,% Refresh_uptime_(True)
-		Case 0x204 : return,% MENSpunction() ; WM_RBUTTONDN
-		;MENSpunction()
-			return,
-		Case 0x203 : TT("Loading...") ; timer("ID_VIEW_VARIABLES",-1);	WM_LBUTTONDBLCLK
-			PostMessage,0x0111,65407,,,% (A_ScriptName " - AutoHotkey")
-		winget,h,id,WinEvent.ahk - AutoHotkey
-		Case 0x205 : return,(trayActiv?MENSpunction()) ;WM_RBUTTONUP
-		;	Case 0x0208:;	WM_MBUTTONUP	;;timer("ID_TRAY_RELOADSCRIPT",-1); TT("Reloading... 1 sec",900); sleep,900; reload			; return
-	}
-	return,
-}
+					(%obj%).SetStyling(Length,SCE_AHKL_USERDEFINED%userstylenum%)
+					,(%obj%).SetTargetRange(TargetEnd,TextLength)
+}	}	}	}
 
 movabletoggle() {
 	global gui_hw,iniwrite_Queued ;	(hwnd=""?hwnd:= gui_hw)
 	winset,transcolor,off,ahk_id %gui_hw%
 	winget,p2old,style,ahk_id %gui_hw% ;msgbox % _:= (wi:= wingetpos(gui_hw)).y ;if (p2old & 0x80000000)
-	if ( !((_:= (wi:= wingetpos(gui_hw)).y)=A_Y_HC)) {
+	if (!((_:= (wi:= wingetpos(gui_hw)).y)=A_Y_HC)) {
 		A_Y_HC:= wi.y, A_X_HC:= wi.x
-		msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289) ; (if moved)
+		msgb0x("New Pos?","Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040 +289) ; (if moved)
 		ifmsgbox,ok
 			IniRightz()	;iniwrite_Queued:=True
 	}
 	winget,p2,style,ahk_id %gui_hw%
 	sleep,200
-	(p2 & 0x80000000? movable:= true : moveable:= False)
+	(p2 &0x80000000? movable:= True : moveable:= False)
 	menu,tray,% movable?"check":"uncheck",ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%
 	return,
 }
@@ -328,12 +300,12 @@ movabletoggle() {
 Mouse(nCode,wParam,lParam) { ; Mouse hook callback - records mouse events into MouseBuffer.
 global MouseBuffer, MERGE_MOVE
 Critical ;if MERGE_MOVE && wParam = 0x200 && NumGet(MouseBuffer, 20, "uint") = 0x200
-if ((buf_max:= #MouseHistory()) > 0) {
-	if (MERGE_MOVE && NumGet(MouseBuffer,20,"uint")=0x200) { ; Update the most recent (mouse-move) event.
+if((buf_max:= #MouseHistory())>0) {
+	if(MERGE_MOVE && NumGet(MouseBuffer,20,"uint")=0x200) { ; Update the most recent (mouse-move) event.
 		DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",lParam,"ptr",20)
-	} else {	; Push older mouse events to the back.; Copy current mouse event to the buffer.
+	} else { ; Push older mouse events to the back.; Copy current mouse event to the buffer.
 		((buf_max>1)? DllCall("RtlMoveMemory","ptr",&MouseBuffer+24,"ptr",&MouseBuffer,"ptr",buf_max*24))
-		DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",lParam,"ptr",20)
+		,DllCall("RtlMoveMemory","ptr",&MouseBuffer,"ptr",lParam,"ptr",20)
 	}
 	NumPut(wParam,MouseBuffer,20,"uint") ; Put wParam in place of dwEventInfo.
 	SetTimer,Show,-10
@@ -351,8 +323,8 @@ Window2Dtop(byref Child="",x:=1,y:=45,w:=480,h:=480){		; Window2Dtop(byref Child
 }															; WinMove,ahk_id %Child%,,1,45,480,480swa; return,errorlevel ;};
 
 WinGetPos(byref WinTitle="") { ; ,WinText="",ExcludeTitle="",ExcludeText="") {
-	(!detecthiddenwindows? (detecthiddenwindows,"on", timer("detecthiddenwindows",-300)))
-	(!detecthiddentext? (detecthiddentext,"on", timer("detecthiddentext",-300)))
+	(!detecthiddenwindows? (detecthiddenwindows,"on", Timer("detecthiddenwindows",-300)))
+	(!detecthiddentext? (detecthiddentext,"on", Timer("detecthiddentext",-300)))
 	WinGetPos, wX, wY, wWidth, wHeight,ahk_id %WinTitle% ;,% WinText,% ExcludeTitle,% ExcludeText
 	return,_:= ({	"X" : wx
 				,	"Y" : wY
@@ -363,8 +335,8 @@ WinGetPos(byref WinTitle="") { ; ,WinText="",ExcludeTitle="",ExcludeText="") {
 mentoggla() {
 	global
 	varn:= a_thismenuitem
-	switch a_thismenuitem {
-		case "Pulse Alpha" : varn:= "Pulse"
+	switch,a_thismenuitem {
+		case,"Pulse Alpha" : varn:= "Pulse"
 		default	: varn:= a_thismenuitem
 	}
 	(%varn%:= !%varn%)
@@ -372,6 +344,29 @@ mentoggla() {
 		try,menu,% A_ThisMenu,check,% a_thismenuitem
 	else,try menu,% A_ThisMenu,uncheck,% a_thismenuitem
 	return,varn
+}
+MENSpunction() {
+	global
+	trayActiv:= True
+	Menu,Tray,Show
+	trayActiv:= False
+}
+
+AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LButtonDOWN   ; 0x202:; WM_LButtonUP
+	;Thread,Priority,0 || ;Thread,Priority,7 ; 0x020B:; WM_XBUTTONDOWN
+	switch,lParam {
+		;case,0x0200 : refresh_uptime_(True)	 ; WM_MOUSEmove
+		; return,% Refresh_uptime_(True)
+		case,0x204 : return,% MENSpunction() ; WM_RBUTTONDN
+		;MENSpunction()
+			return,
+		case,0x203 : TT("Loading...") ; Timer("ID_VIEW_VARIABLES",-1);	WM_LButtonDBLCLK
+			PostMessage,0x0111,65407,,,% (A_ScriptName " - AutoHotkey")
+		winget,h,id,WinEvent.ahk - AutoHotkey
+		case,0x205 : return,(trayActiv?MENSpunction()) ;WM_RBUTTONUP
+		;	case,0x0208:;	WM_MBUTTONUP	;;Timer("ID_TRAY_RELOADSCRIPT",-1); TT("Reloading... 1 sec",900); sleep,900; reload			; return
+	}
+	return,
 }
 
 menutray:
@@ -396,46 +391,41 @@ menu,tray,Add,% "Pause",			MenHandlr
 menu,tray,Icon,% "Pause",%			"C:\Icon\24\head_fk_a_24_c2b.ico",,32
 menu,tray,Add,% "Exit",				MenHandlr
 menu,tray,Icon,% "Exit",%			"C:\Icon\256\DOO0m.ico",,32
-timer("HideTray",-36000)
+Timer("HideTray",-96000)
 return,
 
 hidetray:
 donthidetray:
-switch a_thislabel {
-case "hidetray"		:	menu,tray,noicon
-case "donthidetray"	:	timer("hidetray",off)
+switch,a_thislabel {
+	case,"hidetray"		: menu,Tray,Noicon
+	case,"donthidetray"	: Timer("hidetray",Off)
 }
 return,
 
-WM_LBUTTONDOWN(wParam, lParam,byref RECT, mDC) {
-	tt("aadawad")
-	global gui_hw,rbutton_cooldown:=false
-	;settimer rbutton_cooldown_reset, -670
-	xs:= (lParam & 0xffff), ys:= (lParam >> 16)
-	;DllCall("SetWindowBand", "ptr",gui_hw, "ptr", 0, "uint", 15)
-	;tt(a_lasterror)
-	While   GetKeyState("lbutton","P") {
-		If !GetKeyState("lbutton","P")
+WM_LButtonDOWN(wParam, lParam,byref RECT, mDC) {
+	global gui_hw,rbutton_cooldown:= False
+	xs:= (lParam &0xffff), ys:= (lParam>>16)
+	While,GetKeyState("LButton","P") {
+		If(!GetKeyState("LButton","P"))
 			return,
 		else,tt(a_now)
 		DllCall("GetCursorPos","Uint",&RECT)
-		vWinX   :=  NumGet(&RECT,   0, "Int") - xs
-		vWinY   :=  NumGet(&RECT,   4, "Int") - ys
-		win_move(gui_hw,vWinX,vWiny,"","","")
-	sleep, 4
+		,vWinX:= NumGet(&RECT,0,"Int") -xs
+		,vWinY:= NumGet(&RECT,4,"Int") -ys
+		,win_move(gui_hw,vWinX,vWiny,"","","")
+		sl33p()
 }	}
 
 MenHandlr(isTarget="") {
 	global
 	listlines,off
 	switch	nus:= a_thismenuitem {
-		case "Open Containing": TT("Opening "   a_scriptdir "..." Open_Containing(A_scriptFullPath),1)
-		case "edit","SUSPEND","pAUSE": PostMessage,0x0111,(%a_thismenuitem%),,
-		,% A_ScriptName " - AutoHotkey"
-		case "Open" : PostMessage,0x0111,%open%,,
-		case "reload" : reload
-		case "exit" : exitApp,
-		default: islabel(a_thismenuitem)? timer(a_thismenuitem,-10) : ()
+		case,"Open Containing": TT("Opening "   a_scriptdir "..." Open_Containing(A_scriptFullPath),1)
+		case,"edit","SUSPEND","pAUSE": PostMessage,0x0111,(%a_thismenuitem%),,,% A_ScriptName " - AutoHotkey"
+		case,"Open" : PostMessage,0x0111,%open%,,,% A_ScriptName " - AutoHotkey"
+		case,"reload" : reload,0x0111,%open%,,,% A_ScriptName " - AutoHotkey"
+		case,"exit" : exitApp,
+		default: islabel(a_thismenuitem)? Timer(a_thismenuitem,-10) : ()
 	}
 	return,
 }
