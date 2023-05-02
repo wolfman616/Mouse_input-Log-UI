@@ -10,7 +10,6 @@ Originally adapted from Master https://autohotkey.com/boards/viewtopic.php?f=6&t
 Feel free to enjoy.
 
 Issues: 
-Invisible main "host window" of keyboard ui element dimensions need bringing back in. possibly a rogue scintilla control i see spawning from the custom element.
 
 Optionally temporarily replace some mousefeedback lines with usefull macro fucntions such as measuring cursor drag-rect.
 
