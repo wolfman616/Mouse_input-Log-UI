@@ -3,7 +3,7 @@
 ;#Notrayicon
 #InstallKeybdHook
 #Singleinstance Force
-#KeyHistory(KEY_HIST_MAX:= 13)
+#KeyHistory(KEY_HIST_MAX:= 12)
 #Include <SCIaa>
 DetectHiddenWindows,On
 DetectHiddenText,	On
@@ -12,58 +12,43 @@ SetTitleMatchMode,	Slow
 	SetControlDelay,-1
 		SetWinDelay,-1
 	  Setbatchlines,-1
-global autohidetray:=True, AutoHideTray_T:=-96000
-, A_X_HC, A_Y_HC ;
 fileexist(A_scriptdir "\" A_ScriptName ".ini") ?readini() : ()
-
-global spos:= 1, A_X_HC:= 1,A_Y_HC ;Master X/Y Pos;
+global autohidetray:= True, AutoHideTray_T:= -96000
+, spos:= 1, A_X_HC:= 1, A_Y_HC ;Master X/Y Pos;
 , A_MarginX:= 0, A_MarginY:= 2 ; Master-<<etrics ;
-global wtemp:= strlen( SizingTemplate:= " *WHEEL UP   0.000   9999    9999") *10 ; <-<-------do-not-disturb
-
+, wtemp:= strlen( SizingTemplate:= " *WHEEL UP   0.000   9999    9999") *10 ; <-<-------do-not-disturb
 ;(_:= winexist("Mouse_input-log-ui.ahk"))? A_X_HC:= 280 : A_Y_HC:= 60
-msgbox % A_Y_HC
 SciLexer:= A_ScriptDir . (A_PtrSize==8? "\SciLexer64.dll" : "\SciLexer32.dll")
 if(!LoadSciLexer(SciLexer)) {
 	MsgBox,0x10,%g_AppName% - Error
 , % "Failed to load library """ . SciLexer . """.`n`n"
 	exitapp,
 }
-gosub,Varz
-gosub,MenuTray
 
-rPiD := rP_ID_Gui("KHIST")OnExit("AtExit")
+	gosub,Varz
+	gosub,MenuTray
+	gosub,onmsgz
+;=-------=====-==========----------=====-==========----------=====-==========----------====
 
-OnMessage(0x100,"WM_KEYDOWN")
-OnMessage(0x404,"AHK_NOTIFYICON")
-
-hHookKeybd:= DllCall("SetWindowsHookEx","int",13 ;WH_KEYBOARD_LL=13
-			,"ptr",RegisterCallback("Keyboard")
-			,"ptr",DllCall("GetModuleHandle","ptr",0,"ptr")
-			,"uint",0,"ptr") ; dwThreadId
-
-;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
-
-;gui, Color,0,0 ; +AlwaysOnTop; WS_EX_COMPOSITED = E0x02000000 & WS_EX_LAYERED= E0x00080000
 Gui,+LastFound +E0x0a090028 +Hwndgui_hw -DPIScale +toolwindow -caption
 
 sci_init()
 Gui,Margin,% A_MarginX,% A_MarginY
-Gui,Font,s11,MS gothic 
-;Gui,Add,Text, vKH,% Format(formatting,"ea!u","1000.00","Browooes","KEY_IaGNORE_")
+Gui,Font,s11,MS gothic ;Gui,Add,Text, vKH,% Format(formatting,"ea!u","1000.00","Browooes","KEY_IaGNORE_")
 GuiControlGet,scint,Pos
 GuiControlGet,KHT,Pos
 GuiControlGet,KH,Pos 
-GuiControl,,KH		; clear dummy sizing text ;sci.SetText(unused, text,0xEE0000)
+GuiControl,,KH		;clear dummy sizing text ;sci.SetText(unused, text,0xEE0000)
 if(!headers)
-	GuiControl,,KHT	; clear dummy sizing text 
+	GuiControl,,KHT	;clear dummy sizing text 
 gosub,Resize
 return,
 
 Resize: ; Resize label to fit key history.
 gui_hh:= KHH*#KeyHistory()
-GuiControl, Move, KH, h%gui_hh%
-gui_ww:= wtemp+8
-gui_hh +=KHY + 10
+GuiControl,Move,KH, h%gui_hh%
+gui_ww:= wtemp +8
+gui_hh += KH +10
 ;GuiControl, Move, scint, w100 x-10
 Gui, +LastFound
 ; Determine visibility.
@@ -86,7 +71,18 @@ return, ; Gui,Show,x10 y10 h%gui_hh% w340 NA,KeyHist ; Window2Dtop(gui_hw) ; ret
 GuiClose:
 ExitApp,
 
-dtop_dock:
+OnMsgz:
+rPiD := rP_ID_Gui("KHIST")OnExit("AtExit")
+OnMessage(0x100,"WM_KEYDOWN")
+OnMessage(0x404,"AHK_NOTIFYICON")
+hHookKeybd:= DllCall("SetWindowsHookEx","int",13 ;WH_KEYBOARD_LL=13
+			,"ptr",RegisterCallback("Keyboard")
+			,"ptr",DllCall("GetModuleHandle","ptr",0,"ptr")
+			,"uint",0,"ptr") ; dwThreadId
+return,
+
+
+DTOP_Dock:
 (dwnd:= behind_icon? DesktopAC : (DesktoP()))
 return,
 
@@ -149,59 +145,106 @@ settext(byref txt,byref obj="sci") {
 	global (%obj%)
 	,(%obj%).SetReadOnly(false)
 	,(%obj%).SetText(unused,txt,0xfffffff)
-	,searchrep(keynames,"3")
-	,searchrep(bold,"2") 
-	,searchrep(injecteds,"2") 
-	,searchrep(INjectionCHAR,"1") 
-	,searchrep(notlogignoreCHAR,"1") 
-	,searchrep(notphysCHAR,"1") 
+	; ,searchrep(keynames,"3")
+	; ,searchrep(bold,"2") 
+	; ,searchrep(injecteds,"2") 
+	; ,searchrep(INjectionCHAR,"1") 
+	; ,searchrep(notlogignoreCHAR,"1") 
+	; ,searchrep(notphysCHAR,"1") 
+	Needle:=" 	
+	(LTrim Join Comments
+	ODims)
+	((?:^|\s);[^\n]+)					; Comments
+		|(^\s*\/\*.+?\n\s*\*\/)			; Multiline comments
+		|((?:^|\s)#[^ \t\r\n,]+)		; Directives
+		|([+*!~&\/\\<>^|=?:
+			,().```%{}\[\]\-]+)			; Punctuation
+		|\b(0x[0-9a-fA-F]+|[0-9]+)		; Numbers
+		|(""[^""\r\n]*"")				; Strings
+		|\b(A_\w*|" keynames ")\b		; A_Builtins
+		|\b(" bold ")\b					; bold
+		|\b(" injecteds ")\b			; injecteds
+		|\b(" INjectionCHAR ")\b		 j; INjectionCHAR
+		|\b(" notlogignoreCHAR ")\b		; notlogignoreCHAR
+		|\b(" notphysCHAR ")\b			; notphysCHAR
+		|(([a-zA-Z_$]+)(?=\())			; Functions
+		|(^\s*[A-Z()-\s]+\:\N)			; Descriptions
+	)"
+	searchrep(Needle,byref obj="sci") 
+
 	,(%obj%).SetReadOnly(true)
 }
 
-searchrep(TheNeedle,userstylenum="1",byref obj="sci") {
-	global (%obj%)
-	pSearch:= StrSplit(TheNeedle,",")
-	loop,% (pSearch.Length(), cnt:=0) {
-		if ((SearchText:= pSearch[A_Index]) = "")
-			Continue
-		If (!StringLength:= StrPut(SearchText, "UTF-8") - 1) {
-			(%obj%).IndicatorClearRange(0, (%obj%).GetLength())
-			,Return
-		}
-		TextLength:= (%obj%).GetLength(), cnt++
-		,(%obj%).SetTargetRange(0,TextLength)
-		,Length:= StrPut(SearchText,"UTF-8") - 1
-		,VarSetCapacity(StrBuf,Length)
-		,StrPut(SearchText,&StrBuf,"UTF-8")
-		
-		While ((%obj%).SearchInTarget(StringLength,&StrBuf) != -1) { ; Algumist, RRR
-			TargetStart:= 	(%obj%).GetTargetStart()
-			,TargetEnd:= 	(%obj%).GetTargetEnd()
-			,TargetLength:= 	TargetEnd-TargetStart
 
-			If(!TargetLength) {
-				(%obj%).SetTargetRange(++TargetEnd,TextLength)
-				,continue, ; Zero-length match (Scintilla RegEx)
+matchval(Pos="",Len="",IDNum="",Colour="",byref match="") {
+	static obj:="sci"
+	critical
+	(IDNum=16)? sci_style:= "Style_DEFAULT" : sci_style:= "SCE_AHKL_USERDEFINED" . IDNum
+	; ((Font!=""?)	(%obj%).StyleSetFont(sci_style, Font , Font ))
+	; (Size!=""?	(%obj%).StyleSetSize(sci_style, Size ))
+	; (Italic!=""?	(%obj%).StyleSetItalic(sci_style,(( Italic ="off")? False : (Italic="on"?True))))
+	; (Bold!=""?	(%obj%).StyleSetBold(sci_style,(( Bold ="off")? False : (Bold="on"?True))))
+	; (Underline!=""? (%obj%).STYLESETUNDERLINE(sci_style,(( Underline ="off")? False : (Underline="on"?True))))
+	return,((colour)? sci.StyleSetFore((%sci_style%),dix[IDNum].colour):())
+		,sci.StartStyling(Pos-1)
+		,sci.SetTargetRange(Pos,Pos+Len)
+		,sci.SetStyling(Len,(%sci_style%))
+}
+
+/* 
+;if(matchval(Pos,Len,a_index,colz[ a_index ])) {;if(matchval(FoundPos,Match.Len(),a_index,Dix[ a_index ].Colour,Dix[ a_index ].Font, Dix[ a_index ].Size, Dix[ a_index ].Italic, Dix[ a_index ].Bold, Dix[ a_index ].Underline)) { 
+*/
+
+searchrep(TheNeedle,userstylenum="1",byref obj="sci") {
+	while(FoundPos:= regexmatch(txt,TheNeedle,Match,pos)) {
+		loop,16
+			if(Match.Value(a_index)){
+				matchval(FoundPos,Match.Len(),a_index,dix[ a_index ].Colour,Match)
+				break,
 			}
-			(%obj%).StartStyling(TargetStart) ; colors from start to end
-			,anus:=Mod(cnt, 7)
-			switch anus { ;case "1","2","3","4","5","6","7","8","9","0":
-				default:
-					(%obj%).SetStyling(Length,SCE_AHKL_USERDEFINED%userstylenum%)
-					,(%obj%).SetTargetRange(TargetEnd,TextLength)
+		Pos:= FoundPos +Match.Len()+1
+		continue,
+		global (%obj%)
+		pSearch:= StrSplit(TheNeedle,",")
+		loop,% (pSearch.Length(), cnt:=0) {
+			if((SearchText:= pSearch[A_Index]) = "")
+				Continue
+			If(!StringLength:= StrPut(SearchText, "UTF-8") - 1) {
+				(%obj%).IndicatorClearRange(0, (%obj%).GetLength())
+				Return
+			}
+			TextLength:= (%obj%).GetLength(), cnt++
+			,(%obj%).SetTargetRange(0,TextLength)
+			,Length:= StrPut(SearchText,"UTF-8") -1
+			,VarSetCapacity(StrBuf,Length)
+			,StrPut(SearchText,&StrBuf,"UTF-8")
+			While((%obj%).SearchInTarget(StringLength,&StrBuf)!=-1) { ; Algumist, RRR
+				TargetStart:= 	(%obj%).GetTargetStart()
+				, TargetEnd:= 	(%obj%).GetTargetEnd()
+				, TargetLen:= 	TargetEnd-TargetStart
+				If(!TargetLen) {
+					(%obj%).SetTargetRange(++TargetEnd,TextLength)
+					continue, ; Zero-length match (Scintilla RegEx)
+				}
+				(%obj%).StartStyling(TargetStart) ; colors from start to end
+				,anus:=Mod(cnt,7)
+				switch,anus { ;case "1","2","3","4","5","6","7","8","9","0":
+					default:
+						(%obj%).SetStyling(Length,SCE_AHKL_USERDEFINED%userstylenum%)
+						,(%obj%).SetTargetRange(TargetEnd,TextLength)
+				}
 			}
 		}
 	}
 }
 
 #MaxThreadsBuffer,On
-!WheelDown::
 !WheelUp::
+!WheelDown::
 #MaxThreadsBuffer,Off
 history_size:= #KeyHistory() +((A_ThisHotkey="!WheelUp")? +1 : -1)
-(#KeyHistory(history_size>0)? history_size := 1)
-; Delay resize to improve hotkey responsiveness.
-SetTimer,Resize,-10
+(#KeyHistory(history_size>0)? history_size:= 1)
+SetTimer,Resize,-10 ; Delay resize to improve hotkey responsiveness.
 return,
 
 ; Resize: 							; Resize label to fit mouse history.
@@ -229,18 +272,18 @@ text:= "", buf_size:= #KeyHistory()
 Loop,% 	 ( buf_size ) {
 	if(KeyHistory(buf_size+1-A_Index,vk, sc, flags, time, elapsed, info)) {
 		(elapsed<0)? (elapsed:= "#err#"):(dt:= elapsed*0.001)
-,		keytext:= GetKeyNameText(vk, sc, flags & 0x1)
-		,sc_a:= sc ; AHK-style SC
-		,((flags & 1)?(sc_a |= 0x100))
-		,flags &= ~1
-		,sc_a:= SubStr("000" SubStr(sc_a, 3), -2)
-		,vk_a:= SubStr(vk+0, 3)
-		if (StrLen(vk_a)<2)
-			vk_a = 0%vk_a%
+		, keytext:= GetKeyNameText(vk,sc,flags &0x1)
+		, sc_a:= sc ; AHK-style SC
+		, ((flags &1)?(sc_a|=0x100))
+		, flags&=~1
+		, sc_a:= SubStr("000" SubStr(sc_a,3),-2)
+		, vk_a:= SubStr(vk+0,3)
+		if(StrLen(vk_a)<2)
+			vk_a=0%vk_a%
 		StringUpper,vk_a,vk_a
-		,StringUpper,sc_a,a
-		flags:= GetKeyFlagText(flags & ~0x1)	;(s!flags? flags:="Down ") ; text .= Format("{:-4}{:-5}{:-7}{:-9}{:-10}{:-30}`n", vk_a, sc_a, flags, dt, keytext, info)
-		,text.= Format(formatting,flags,dt,keytext,info)
+		, StringUpper,sc_a,a
+		flags:= GetKeyFlagText(flags&~0x1)	;(s!flags? flags:="Down ") ; text .= Format("{:-4}{:-5}{:-7}{:-9}{:-10}{:-30}`n", vk_a, sc_a, flags, dt, keytext, info)
+		, text.=Format(formatting,flags,dt,keytext,info)
 }	}
 settext(text)
 return,
@@ -385,16 +428,8 @@ SendUnicodeChar(charCode) {
 	DllCall("SendInput","UInt",2,"UInt",&ki,"Int",28)
 }
 
-niggertoggle() {
-global
-static cuntface
-if (cuntface="nigger")
-{
-	msgbox fgfdgdfgdfg
-	IniRightz()
-	
-return
-}
+movtogl() {
+	global
 	winget,p2old,style,ahk_id %gui_hw% 
 	winset,transcolor,off,ahk_id %gui_hw%
 	_:= (wi:= wingetpos(gui_hw)).y ; if (p2old & 0x80000000) ; &&
@@ -403,14 +438,11 @@ return
 		,"Save new Pos?`nX: " A_X_HC "`nY: " A_Y_HC,5,0x43040+289) ; (if moved)
 		ifmsgbox,ok
 			IniRightz() ; iniwrite_Queued:=True
-	}
-	sleep,200
+	} sleep,200
 	winget,p2,style,ahk_id %gui_hw%
 	(p2 &0x80000000? movable:= true : moveable:= False)
 	(movable?buggeroff:="check":buggeroff:="uncheck")
 	menu,tray,% buggeroff,ismovable,% "movabletoggle",winset,transcolor,0x000000,ahk_id %gui_hw%
-	if movable 
-		cuntface:="nigger"
 	return,
 }
 
@@ -474,7 +506,7 @@ AHK_NOTIFYICON(wParam, lParam) {	; 0x201: ; WM_LBUTTONDOWN ; 0x202:; WM_LBUTTONU
 
 menutray:
 menu,tray,noStandard
-menu,tray,add,ismovable,niggertoggle
+menu,tray,add,ismovable,movtogl
 menu,tray,add,hide me pls, hidetray
 menu,tray,icon,hide me pls, C:\Icon\32\32.ico
 menu,tray,add,dont hide pls, donthidetray
